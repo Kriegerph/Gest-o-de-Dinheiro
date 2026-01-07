@@ -1,0 +1,117 @@
+<div class="row g-3">
+  <div class="col-12 d-flex align-items-center justify-content-between">
+    <div>
+      <p class="text-uppercase text-primary small mb-1">Organização</p>
+      <h3 class="fw-bold mb-0">Categorias</h3>
+    </div>
+    <div class="w-auto">
+      <input
+        type="text"
+        class="form-control glass-input"
+        placeholder="Buscar..."
+        (input)="setSearch($any($event.target).value)"
+      />
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="glass-card p-3 h-100">
+      <h6 class="fw-semibold mb-3">{{ editingId ? 'Editar categoria' : 'Nova categoria' }}</h6>
+      <form [formGroup]="form" class="d-grid gap-3" (ngSubmit)="save()">
+        <div>
+          <label class="form-label text-secondary">Nome</label>
+          <input class="form-control glass-input" formControlName="name" placeholder="Ex: Alimentação" />
+        </div>
+        <div>
+          <label class="form-label text-secondary">Cor</label>
+          <input class="form-control form-control-color w-100" type="color" formControlName="color" />
+        </div>
+        <div>
+          <label class="form-label text-secondary d-block">Tipo</label>
+          <div class="btn-group w-100" role="group" aria-label="Tipo">
+            <input
+              type="checkbox"
+              class="btn-check"
+              id="category-type-income"
+              autocomplete="off"
+              [checked]="form.get('type')?.value === 'income'"
+              (click)="toggleCategoryType('income')"
+            />
+            <label class="btn btn-outline-success w-50" for="category-type-income">Receita</label>
+            <input
+              type="checkbox"
+              class="btn-check"
+              id="category-type-expense"
+              autocomplete="off"
+              [checked]="form.get('type')?.value === 'expense'"
+              (click)="toggleCategoryType('expense')"
+            />
+            <label class="btn btn-outline-danger w-50" for="category-type-expense">Despesa</label>
+          </div>
+          <small class="text-danger" *ngIf="form.get('type')?.touched && form.get('type')?.invalid">
+            Selecione um tipo.
+          </small>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary flex-grow-1" type="submit">
+            {{ editingId ? 'Salvar alterações' : 'Adicionar' }}
+          </button>
+          <button class="btn btn-outline-light" type="button" (click)="resetForm()">Limpar</button>
+        </div>
+      </form>
+      <div *ngIf="message" class="alert alert-info mt-3 mb-0">
+        {{ message }}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="glass-card p-3 h-100">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-sm app-table">
+          <thead>
+            <tr class="text-secondary">
+              <th>Nome</th>
+              <th>Cor</th>
+              <th>Tipo</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let category of categories$ | async; trackBy: trackById">
+              <td>{{ category.name }}</td>
+              <td>
+                <span class="badge rounded-pill" [style.background]="category.color">&nbsp;</span>
+                <small class="ms-2 text-secondary">{{ category.color }}</small>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'bg-success-subtle text-success': category.type === 'income',
+                    'bg-danger-subtle text-danger': category.type === 'expense'
+                  }"
+                >
+                  {{ category.type === 'income' ? 'Receita' : 'Despesa' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-light me-2" (click)="edit(category)">
+                  <i class="bi bi-pencil me-1"></i>
+                  Editar
+                </button>
+                <button class="btn btn-sm btn-outline-light" (click)="delete(category)">
+                  <i class="bi bi-trash me-1"></i>
+                  Excluir
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="(categories$ | async)?.length === 0">
+              <td colspan="4" class="text-center text-secondary py-3">Nenhuma categoria cadastrada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

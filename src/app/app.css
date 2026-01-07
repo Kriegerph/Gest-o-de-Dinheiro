@@ -1,0 +1,9 @@
+:host {
+  display: block;
+}
+
+.app-surface {
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  color: var(--text-color);
+}

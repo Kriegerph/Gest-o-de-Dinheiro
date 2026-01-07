@@ -1,0 +1,107 @@
+<div class="auth-wrapper d-flex align-items-center justify-content-center">
+  <div class="auth-card p-4 p-md-5 shadow-lg">
+    <div class="mb-4 text-center">
+      <p class="text-uppercase text-primary fw-semibold letter-spacing">GestaoDeGastos</p>
+      <h2 class="fw-bold mb-2">Crie sua conta</h2>
+      <p class="text-secondary">Organize seus gastos com um visual futurista e leve.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label text-secondary">Nome</label>
+        <input type="text" class="form-control glass-input" placeholder="Nome" formControlName="firstName" />
+        <small class="text-danger" *ngIf="form.get('firstName')?.touched && form.get('firstName')?.invalid">
+          Informe um nome válido.
+        </small>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label text-secondary">Sobrenome</label>
+        <input type="text" class="form-control glass-input" placeholder="Sobrenome" formControlName="lastName" />
+        <small class="text-danger" *ngIf="form.get('lastName')?.touched && form.get('lastName')?.invalid">
+          Informe um sobrenome válido.
+        </small>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label text-secondary">Data de nascimento</label>
+        <input type="date" class="form-control glass-input" formControlName="birthDate" required />
+        <small class="text-danger" *ngIf="form.get('birthDate')?.touched && form.get('birthDate')?.invalid">
+          Informe uma data valida.
+        </small>
+        <div class="text-danger" *ngIf="form.get('birthDate')?.errors?.['underage']">
+          Voce precisa ter pelo menos 18 anos.
+        </div>
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label text-secondary">E-mail</label>
+        <input type="email" class="form-control glass-input" placeholder="seu@email.com" formControlName="email" />
+        <small class="text-danger" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+          Informe um e-mail válido.
+        </small>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label text-secondary">Senha</label>
+        <div class="input-group">
+          <input
+            class="form-control glass-input"
+            formControlName="password"
+            [type]="showPassword ? 'text' : 'password'"
+            placeholder="Mínimo 6 caracteres"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-light"
+            (click)="showPassword = !showPassword"
+            aria-label="Mostrar ou ocultar senha"
+          >
+            <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+          </button>
+        </div>
+        <small class="text-danger" *ngIf="form.get('password')?.touched && form.get('password')?.invalid">
+          M??nimo de 6 caracteres.
+        </small>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label text-secondary">Confirmar senha</label>
+        <div class="input-group">
+          <input
+            class="form-control glass-input"
+            formControlName="confirmPassword"
+            [type]="showConfirmPassword ? 'text' : 'password'"
+            placeholder="Confirme sua senha"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-light"
+            (click)="showConfirmPassword = !showConfirmPassword"
+            aria-label="Mostrar ou ocultar senha"
+          >
+            <i class="bi" [ngClass]="showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+          </button>
+        </div>
+        <small class="text-danger" *ngIf="form.errors?.['mismatch'] && form.get('confirmPassword')?.touched">
+          As senhas n??o conferem.
+        </small>
+      </div>
+
+      <div class="col-12">
+        <button class="btn btn-primary w-100 py-2 fw-semibold" [disabled]="loading">
+          {{ loading ? 'Criando...' : 'Criar conta' }}
+        </button>
+      </div>
+
+      <div class="col-12 text-center">
+        <span class="text-secondary">Já possui conta?</span>
+        <a routerLink="/auth/login" class="ms-2 text-primary">Entrar</a>
+      </div>
+
+      <div class="col-12" *ngIf="message">
+        <div class="alert alert-danger mb-0">{{ message }}</div>
+      </div>
+    </form>
+  </div>
+</div>

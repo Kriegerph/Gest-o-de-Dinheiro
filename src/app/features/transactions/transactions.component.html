@@ -1,0 +1,153 @@
+<div class="row g-3" *ngIf="categories$ | async as categories">
+  <div class="col-12">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <p class="text-uppercase text-primary small mb-1">Fluxo</p>
+        <h3 class="fw-bold mb-0">Lançamentos</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="glass-card p-3 h-100">
+      <h6 class="fw-semibold mb-3">{{ editingId ? 'Editar lançamento' : 'Novo lançamento' }}</h6>
+      <form [formGroup]="form" class="d-grid gap-3" (ngSubmit)="save()">
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label text-secondary d-block">Tipo</label>
+            <div class="btn-group w-100" role="group" aria-label="Tipo">
+              <input
+                type="checkbox"
+                class="btn-check"
+                id="tx-type-income"
+                autocomplete="off"
+                [checked]="form.get('type')?.value === 'income'"
+                (click)="toggleType('income')"
+              />
+              <label class="btn btn-outline-success w-50" for="tx-type-income">Receita</label>
+              <input
+                type="checkbox"
+                class="btn-check"
+                id="tx-type-expense"
+                autocomplete="off"
+                [checked]="form.get('type')?.value === 'expense'"
+                (click)="toggleType('expense')"
+              />
+              <label class="btn btn-outline-danger w-50" for="tx-type-expense">Despesa</label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-secondary">Data</label>
+            <input type="date" class="form-control glass-input" formControlName="date" />
+          </div>
+        </div>
+        <div>
+          <label class="form-label text-secondary">Descrição</label>
+          <input class="form-control glass-input" formControlName="description" placeholder="Ex: Supermercado" />
+        </div>
+        <div>
+          <label class="form-label text-secondary">Valor</label>
+          <input
+            type="number"
+            class="form-control glass-input"
+            formControlName="amount"
+            placeholder="Ex: 150.00"
+            min="0.01"
+            step="0.01"
+          />
+        </div>
+        <div *ngIf="filteredCategories$ | async as filteredCategories">
+          <label class="form-label text-secondary">Categoria</label>
+          <select
+            class="form-select glass-input"
+            formControlName="categoryId"
+            [class.is-invalid]="form.get('categoryId')?.touched && form.get('categoryId')?.invalid"
+          >
+            <ng-container *ngIf="form.get('type')?.value">
+              <option value="" disabled>Selecione...</option>
+              <option *ngFor="let c of filteredCategories" [value]="c.id">{{ c.name }}</option>
+            </ng-container>
+          </select>
+          <div class="invalid-feedback">Selecione uma categoria.</div>
+          <small class="text-secondary" *ngIf="!form.get('type')?.value">
+            Selecione o tipo (receita/despesa) para ver categorias.
+          </small>
+        </div>
+        <div>
+          <label class="form-label text-secondary">Observações</label>
+          <textarea rows="2" class="form-control glass-input" formControlName="notes"></textarea>
+        </div>
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-primary flex-grow-1"
+            type="submit"
+            [disabled]="form.invalid || form.get('type')?.value === null || form.get('categoryId')?.value === ''"
+          >
+            {{ editingId ? 'Salvar' : 'Adicionar' }}
+          </button>
+          <button class="btn btn-outline-light" type="button" (click)="resetForm()">Limpar</button>
+        </div>
+      </form>
+      <div
+        *ngIf="message"
+        class="alert mt-3 mb-0"
+        [ngClass]="{
+          'alert-success': messageType === 'success',
+          'alert-danger': messageType === 'danger',
+          'alert-info': messageType === 'info'
+        }"
+      >
+        {{ message }}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="glass-card p-3 h-100">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-sm app-table">
+          <thead>
+            <tr class="text-secondary">
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Tipo</th>
+              <th>Categoria</th>
+              <th class="text-end">Valor</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody *ngIf="transactions$ | async as transactions">
+            <tr *ngFor="let tx of transactions; trackBy: trackById">
+              <td>{{ formatDate(tx.date) }}</td>
+              <td class="text-truncate" style="max-width: 220px;">{{ tx.description }}</td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="{ 'bg-success-subtle text-success': tx.type === 'income', 'bg-danger-subtle text-danger': tx.type === 'expense' }"
+                  >{{ tx.type === 'income' ? 'Receita' : 'Despesa' }}</span
+                >
+              </td>
+              <td>{{ getCategoryName(categories, tx.categoryId) }}</td>
+              <td class="text-end fw-semibold">
+                {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-light me-2" (click)="edit(tx)">
+                  <i class="bi bi-pencil me-1"></i>
+                  Editar
+                </button>
+                <button class="btn btn-sm btn-outline-light" (click)="delete(tx)">
+                  <i class="bi bi-trash me-1"></i>
+                  Excluir
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="transactions.length === 0">
+              <td colspan="6" class="text-center text-secondary py-3">Nenhum lançamento cadastrado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

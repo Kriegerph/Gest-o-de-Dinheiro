@@ -1,0 +1,10 @@
+<div class="shell-wrapper d-flex">
+  <app-sidebar [isOpen]="sidebarOpen" (navigate)="handleNavigate()"></app-sidebar>
+
+  <div class="flex-grow-1 main-area">
+    <app-navbar (toggleSidebar)="toggleSidebar()"></app-navbar>
+    <div class="content-area">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>

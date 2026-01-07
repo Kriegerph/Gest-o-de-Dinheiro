@@ -1,0 +1,21 @@
+.shell-wrapper {
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  color: #e5e7eb;
+}
+
+.main-area {
+  padding: 1.25rem;
+  width: 100%;
+}
+
+.content-area {
+  padding: 0.5rem;
+}
+
+@media (max-width: 991px) {
+  .main-area {
+    padding: 1rem;
+    margin-left: 0;
+  }
+}

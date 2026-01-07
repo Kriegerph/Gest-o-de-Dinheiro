@@ -1,1 +1,203 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-gradient: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.14), transparent 30%),
+    radial-gradient(circle at 10% 80%, rgba(16, 185, 129, 0.12), transparent 25%),
+    linear-gradient(135deg, #0b1220, #0f172a 60%, #0b1220);
+  --text-color: #e5e7eb;
+  --muted: #9ca3af;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text-color);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #6366f1, #22d3ee);
+  border: 0;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.table {
+  color: #e5e7eb;
+}
+
+.form-control,
+.form-select {
+  color: #e5e7eb;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.18);
+}
+
+/* ========= THEME TOKENS (dark) ========= */
+:root {
+  --app-bg: #0e1626;
+  --app-surface: #131f33;
+  --app-surface-2: #182844;
+  --app-border: rgba(255, 255, 255, 0.1);
+  --app-text: rgba(255, 255, 255, 0.92);
+  --app-muted: rgba(255, 255, 255, 0.7);
+  --app-placeholder: rgba(255, 255, 255, 0.45);
+}
+
+/* ========= TABLES ========= */
+.table.app-table,
+.table.app-table thead,
+.table.app-table tbody,
+.table.app-table tr,
+.table.app-table th,
+.table.app-table td {
+  color: var(--app-text) !important;
+}
+
+.table.app-table {
+  background: transparent !important;
+}
+
+.table.app-table thead th {
+  background: var(--app-surface-2) !important;
+  border: 1px solid var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+.table.app-table tbody tr {
+  background: var(--app-surface) !important;
+  border: 1px solid var(--app-border) !important;
+}
+
+.table.app-table tbody td {
+  background: transparent !important;
+}
+
+/* deixa as linhas-card bonitas mesmo com table-responsive */
+.table.app-table {
+  border-collapse: separate !important;
+  border-spacing: 0 10px !important;
+}
+
+.table.app-table tbody tr td:first-child {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+
+.table.app-table tbody tr td:last-child {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+/* ========= INPUTS (dark) ========= */
+.form-control,
+.form-select,
+.input-group .form-control,
+.input-group .form-select {
+  background-color: rgba(19, 31, 51, 0.85) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+.form-control::placeholder {
+  color: var(--app-placeholder) !important;
+  opacity: 1 !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.18) !important;
+  border-color: rgba(13, 110, 253, 0.55) !important;
+}
+
+/* ========= SELECT / OPTIONS (dropdown) ========= */
+.form-select {
+  background-color: rgba(19, 31, 51, 0.85) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+.form-select option {
+  background-color: #0f1a2d !important;
+  color: var(--app-text) !important;
+}
+
+.form-select option:disabled {
+  color: var(--app-placeholder) !important;
+}
+
+/* ========= BOOTSTRAP DROPDOWN (se usar dropdown menu em vez de select) ========= */
+.dropdown-menu {
+  background-color: #0f1a2d !important;
+  border: 1px solid var(--app-border) !important;
+}
+
+.dropdown-item {
+  color: var(--app-text) !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ========= Small fixes for disabled fields ========= */
+.form-control:disabled,
+.form-select:disabled {
+  background-color: rgba(19, 31, 51, 0.55) !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.app-table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+
+.app-table tbody tr {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.app-table tbody tr td:first-child {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+
+.app-table tbody tr td:last-child {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+.app-table thead th {
+  font-weight: 600;
+  opacity: 0.9;
+  border: 0;
+}
+
+.app-table td,
+.app-table th {
+  border: 0 !important;
+}

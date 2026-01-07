@@ -1,0 +1,84 @@
+<div class="row g-3">
+  <div class="col-12">
+    <div class="page-header d-flex align-items-center justify-content-between">
+      <div>
+        <p class="text-uppercase text-primary small mb-1">Visão geral</p>
+        <h3 class="fw-bold mb-0">Dashboard</h3>
+      </div>
+      <div class="text-secondary">
+        Mês atual: {{ month }}/{{ year }}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="glass-card p-3 h-100">
+      <div class="text-secondary small">Saldo</div>
+      <h2 class="fw-bold text-light">
+        {{ (summary$ | async)?.balance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+      </h2>
+      <p class="text-success small">Atualizado em tempo real</p>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="glass-card p-3 h-100">
+      <div class="text-secondary small">Entradas</div>
+      <h3 class="fw-bold text-info">
+        {{ (summary$ | async)?.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+      </h3>
+      <p class="small text-secondary">Receitas do mês</p>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="glass-card p-3 h-100">
+      <div class="text-secondary small">Saídas</div>
+      <h3 class="fw-bold text-warning">
+        {{ (summary$ | async)?.totalExpense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+      </h3>
+      <p class="small text-secondary">Despesas do mês</p>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="glass-card p-3">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0 fw-semibold">Últimas transações</h5>
+        <span class="badge text-light">Atualizado</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-sm app-table">
+          <thead>
+            <tr class="text-secondary">
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Tipo</th>
+              <th class="text-end">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let tx of recent$ | async; trackBy: trackById">
+              <td>{{ formatDate(tx.date) }}</td>
+              <td class="text-truncate" style="max-width: 220px;">{{ tx.description }}</td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="{ 'bg-success-subtle text-success': tx.type === 'income', 'bg-danger-subtle text-danger': tx.type === 'expense' }"
+                >
+                  {{ tx.type === 'income' ? 'Receita' : 'Despesa' }}
+                </span>
+              </td>
+              <td class="text-end fw-semibold">
+                {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </td>
+            </tr>
+            <tr *ngIf="(recent$ | async)?.length === 0">
+              <td colspan="4" class="text-center text-secondary py-3">Sem transações ainda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

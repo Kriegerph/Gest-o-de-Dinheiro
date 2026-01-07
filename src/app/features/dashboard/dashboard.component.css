@@ -1,0 +1,14 @@
+.page-header h3 {
+  letter-spacing: -0.02em;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}

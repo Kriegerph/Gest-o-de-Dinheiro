@@ -1,0 +1,57 @@
+<div class="auth-wrapper d-flex align-items-center justify-content-center">
+  <div class="auth-card p-4 p-md-5 shadow-lg">
+    <div class="mb-4 text-center">
+      <p class="text-uppercase text-primary fw-semibold letter-spacing">GestaoDeGastos</p>
+      <h2 class="fw-bold mb-2">Bem-vindo de volta</h2>
+      <p class="text-secondary">Acesse sua conta para continuar controlando seus gastos.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="row g-3">
+      <div class="col-12">
+        <label class="form-label text-secondary">E-mail</label>
+        <input type="email" class="form-control glass-input" placeholder="Seu e-mail" formControlName="email" />
+        <small class="text-danger" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+          Informe um e-mail válido.
+        </small>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label text-secondary">Senha</label>
+        <div class="input-group">
+          <input
+            class="form-control glass-input"
+            placeholder="Sua senha"
+            formControlName="password"
+            [type]="showPassword ? 'text' : 'password'"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-light"
+            (click)="showPassword = !showPassword"
+            aria-label="Mostrar ou ocultar senha"
+          >
+            <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+          </button>
+        </div>
+        <small class="text-danger" *ngIf="form.get('password')?.touched && form.get('password')?.invalid">
+          Senha mínima de 6 caracteres.
+        </small>
+      </div>
+
+      <div class="col-12">
+        <button class="btn btn-primary w-100 py-2 fw-semibold" [disabled]="loading">
+          {{ loading ? 'Entrando...' : 'Entrar' }}
+        </button>
+      </div>
+
+      <div class="col-12 text-center">
+        <span class="text-secondary">Ainda não tem conta?</span>
+        <a routerLink="/auth/register" class="ms-2 text-primary">Criar conta</a>
+      </div>
+
+      <div class="col-12" *ngIf="message">
+        <div class="alert alert-danger mb-0">{{ message }}</div>
+      </div>
+    </form>
+  </div>
+</div>

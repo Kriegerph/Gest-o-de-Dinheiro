@@ -1,59 +1,42 @@
-# GestaoDeGastos
+# GestaoDeGastos (Angular standalone + Firebase)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.4.
+Aplicação web completa para gestão de gastos com autenticação e Firestore multiusuário. Tudo já vem configurado com Firebase modular (sem compat) e Bootstrap 5 com visual futurista.
 
-## Development server
+## Como rodar
+- `npm install`
+- `npm start` ou `ng serve -o`
+- A aplicação abre em `/auth/login`. Registre-se para acessar o shell `/app/...`.
 
-To start a local development server, run:
+## Firebase
+- Configuração já aplicada em `src/environments/environment.ts`.
+- Firestore estruturado em `users/{uid}/...` para isolar dados por usuário.
+- Regras recomendadas (publique em Firestore Rules):
+  ```
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      match /users/{userId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
 
-```bash
-ng serve
-```
+        match /{document=**} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+    }
+  }
+  ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Funcionalidades
+- Cadastro/login com Firebase Auth.
+- Sidebar + navbar reativas, botão sair instantâneo.
+- Abas privadas: Dashboard, Lançamentos, Categorias, Metas, Relatórios, Configurações.
+- Categorias: CRUD completo, bloqueio de exclusão se em uso, seed automático padrão.
+- Lançamentos: CRUD de receitas/despesas, despesa exige categoria, receita não.
+- Metas: metas mensais por categoria com cálculo de gasto real, restante, % e barra de progresso.
+- Relatórios: filtro por data, totais (entradas/saídas/saldo), tabela por categoria, lista de lançamentos, exportação CSV.
+- Configurações: editar perfil, trocar e-mail e senha com reautenticação.
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Observações
+- Projeto totalmente standalone (sem AppModule) e sem import de `firebase/auth` ou `firebase/firestore` direto.
+- Firebase inicializado apenas em `src/app/app.config.ts` via `provideFirebaseApp`/`provideAuth`/`provideFirestore`.
+- Bootstrap 5 e Bootstrap Icons incluídos em `angular.json`.

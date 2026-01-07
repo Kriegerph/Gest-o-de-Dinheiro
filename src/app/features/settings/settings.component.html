@@ -1,0 +1,158 @@
+<div class="container-fluid">
+  <div class="row g-3">
+    <div class="col-12">
+      <p class="text-uppercase text-primary small mb-1">Conta</p>
+      <h3 class="fw-bold mb-0">Configurações</h3>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="glass-card p-3 h-100">
+        <h6 class="fw-semibold mb-3">Dados pessoais</h6>
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label text-secondary">Nome</label>
+              <input class="form-control glass-input" formControlName="firstName" placeholder="Ex: Pedro" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-secondary">Sobrenome</label>
+              <input class="form-control glass-input" formControlName="lastName" placeholder="Ex: Krieger" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-secondary">Data de nascimento</label>
+            <input
+              type="date"
+              class="form-control glass-input"
+              formControlName="birthDate"
+              required
+            />
+            <div class="text-danger" *ngIf="profileForm.get('birthDate')?.errors?.['underage']">
+              Voce precisa ter pelo menos 18 anos.
+            </div>
+          </div>
+          <div class="d-flex flex-column flex-lg-row gap-2">
+            <button class="btn btn-primary w-100 w-lg-auto" type="submit">Salvar dados</button>
+          </div>
+        </form>
+        <div *ngIf="profileMessage" class="alert alert-info mt-3 mb-0">{{ profileMessage }}</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="glass-card p-3 h-100">
+        <h6 class="fw-semibold mb-3">Conta</h6>
+
+        <div class="mb-4">
+          <h6 class="fw-semibold mb-3">Alterar e-mail</h6>
+          <form [formGroup]="emailForm" (ngSubmit)="changeEmail()">
+            <div class="mb-3">
+              <label class="form-label text-secondary">Novo e-mail</label>
+              <input
+                type="email"
+                class="form-control glass-input"
+                formControlName="newEmail"
+                placeholder="Ex: voce@exemplo.com"
+              />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary">Senha atual</label>
+              <div class="input-group">
+                <input
+                  class="form-control glass-input"
+                  formControlName="currentPassword"
+                  placeholder="Digite sua senha atual"
+                  [type]="show.emailCurrent ? 'text' : 'password'"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-light"
+                  (click)="show.emailCurrent = !show.emailCurrent"
+                  aria-label="Mostrar ou ocultar senha"
+                >
+                  <i class="bi" [ngClass]="show.emailCurrent ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex flex-column flex-lg-row gap-2">
+              <button class="btn btn-outline-light w-100 w-lg-auto" type="submit">
+                Enviar confirmacao para novo e-mail
+              </button>
+            </div>
+          </form>
+          <div *ngIf="emailMessage" class="alert alert-info mt-3 mb-0">{{ emailMessage }}</div>
+        </div>
+
+        <hr class="border-secondary-subtle my-4" />
+
+        <div>
+          <h6 class="fw-semibold mb-3">Alterar senha</h6>
+          <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+            <div class="mb-3">
+              <label class="form-label text-secondary">Senha atual</label>
+              <div class="input-group">
+                <input
+                  class="form-control glass-input"
+                  formControlName="currentPassword"
+                  placeholder="Digite sua senha atual"
+                  [type]="show.passwordCurrent ? 'text' : 'password'"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-light"
+                  (click)="show.passwordCurrent = !show.passwordCurrent"
+                  aria-label="Mostrar ou ocultar senha"
+                >
+                  <i class="bi" [ngClass]="show.passwordCurrent ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary">Nova senha</label>
+              <div class="input-group">
+                <input
+                  class="form-control glass-input"
+                  formControlName="newPassword"
+                  placeholder="Minimo 6 caracteres"
+                  [type]="show.passwordNew ? 'text' : 'password'"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-light"
+                  (click)="show.passwordNew = !show.passwordNew"
+                  aria-label="Mostrar ou ocultar senha"
+                >
+                  <i class="bi" [ngClass]="show.passwordNew ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary">Confirmar senha</label>
+              <div class="input-group">
+                <input
+                  class="form-control glass-input"
+                  formControlName="confirmPassword"
+                  placeholder="Repita a nova senha"
+                  [type]="show.passwordConfirm ? 'text' : 'password'"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-light"
+                  (click)="show.passwordConfirm = !show.passwordConfirm"
+                  aria-label="Mostrar ou ocultar senha"
+                >
+                  <i class="bi" [ngClass]="show.passwordConfirm ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
+              </div>
+              <small class="text-danger" *ngIf="passwordForm.errors?.['mismatch']">Senhas nao conferem.</small>
+            </div>
+            <div class="d-flex flex-column flex-lg-row gap-2">
+              <button class="btn btn-outline-light w-100 w-lg-auto" type="submit">Atualizar senha</button>
+            </div>
+          </form>
+          <div *ngIf="passwordMessage" class="alert alert-info mt-3 mb-0">{{ passwordMessage }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

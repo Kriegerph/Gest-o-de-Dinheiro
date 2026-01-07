@@ -1,0 +1,119 @@
+<div class="row g-3">
+  <div class="col-12 d-flex align-items-center justify-content-between">
+    <div>
+      <p class="text-uppercase text-primary small mb-1">Análises</p>
+      <h3 class="fw-bold mb-0">Relatórios</h3>
+    </div>
+    <button class="btn btn-outline-light" (click)="exportXlsx()">Exportar Excel</button>
+  </div>
+
+  <div class="col-12">
+    <div class="glass-card p-3">
+      <form [formGroup]="form" class="row g-3 align-items-end" (ngSubmit)="applyFilters()">
+        <div class="col-md-4">
+          <label class="form-label text-secondary">Início</label>
+          <input type="date" class="form-control glass-input" formControlName="start" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-secondary">Fim</label>
+          <input type="date" class="form-control glass-input" formControlName="end" />
+        </div>
+        <div class="col-md-4">
+          <button class="btn btn-primary w-100" type="submit">Gerar</button>
+        </div>
+      </form>
+      <div *ngIf="message" class="alert alert-warning mt-3 mb-0">{{ message }}</div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="report$ | async as report">
+    <div class="col-md-4">
+      <div class="glass-card p-3 h-100">
+        <div class="text-secondary small">Entradas</div>
+        <h4 class="fw-bold text-info">
+          {{ report.summary.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+        </h4>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card p-3 h-100">
+        <div class="text-secondary small">Saídas</div>
+        <h4 class="fw-bold text-warning">
+          {{ report.summary.totalExpense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+        </h4>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card p-3 h-100">
+        <div class="text-secondary small">Saldo</div>
+        <h4 class="fw-bold text-light">
+          {{ report.summary.balance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+        </h4>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card p-3 h-100">
+        <h6 class="fw-semibold mb-3">Gasto por categoria</h6>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Categoria</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of report?.byCategory">
+                <td>{{ item.categoryName || 'Categoria' }}</td>
+                <td class="text-end fw-semibold">
+                  {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </td>
+              </tr>
+              <tr *ngIf="report?.byCategory?.length === 0">
+                <td colspan="2" class="text-secondary text-center py-3">Sem dados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card p-3 h-100">
+        <h6 class="fw-semibold mb-3">Lançamentos</h6>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Data</th>
+                <th>Desc</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tx of report?.transactions">
+                <td>{{ formatDateShort(tx.date) }}</td>
+                <td class="text-truncate" style="max-width: 200px;">{{ tx.description }}</td>
+                <td>
+                  <span
+                    class="badge"
+                    [ngClass]="{ 'bg-success-subtle text-success': tx.type === 'income', 'bg-danger-subtle text-danger': tx.type === 'expense' }"
+                    >{{ tx.type === 'income' ? 'Receita' : 'Despesa' }}</span
+                  >
+                </td>
+                <td class="fw-semibold">
+                  {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </td>
+              </tr>
+              <tr *ngIf="report?.transactions?.length === 0">
+                <td colspan="4" class="text-secondary text-center py-3">Nenhum lançamento no período.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

@@ -71,19 +71,19 @@ export class CategoriesService {
       return;
     }
 
-    const defaults: Omit<Category, 'id'>[] = [
-      { name: 'Receitas', color: '#22d3ee', type: 'income', createdAt: Timestamp.now() },
-      { name: 'Alimentacao', color: '#f97316', type: 'expense', createdAt: Timestamp.now() },
-      { name: 'Moradia', color: '#8b5cf6', type: 'expense', createdAt: Timestamp.now() },
-      { name: 'Transporte', color: '#0ea5e9', type: 'expense', createdAt: Timestamp.now() },
-      { name: 'Lazer', color: '#06b6d4', type: 'expense', createdAt: Timestamp.now() },
-      { name: 'Saude', color: '#ef4444', type: 'expense', createdAt: Timestamp.now() },
-      { name: 'Educacao', color: '#10b981', type: 'expense', createdAt: Timestamp.now() },
-      { name: 'Outros', color: '#9ca3af', type: 'expense', createdAt: Timestamp.now() }
-    ];
+    // const defaults: Omit<Category, 'id'>[] = [
+    //   { name: 'Receitas', color: '#22d3ee', type: 'income', createdAt: Timestamp.now() },
+    //   { name: 'Alimentacao', color: '#f97316', type: 'expense', createdAt: Timestamp.now() },
+    //   { name: 'Moradia', color: '#8b5cf6', type: 'expense', createdAt: Timestamp.now() },
+    //   { name: 'Transporte', color: '#0ea5e9', type: 'expense', createdAt: Timestamp.now() },
+    //   { name: 'Lazer', color: '#06b6d4', type: 'expense', createdAt: Timestamp.now() },
+    //   { name: 'Saude', color: '#ef4444', type: 'expense', createdAt: Timestamp.now() },
+    //   { name: 'Educacao', color: '#10b981', type: 'expense', createdAt: Timestamp.now() },
+    //   { name: 'Outros', color: '#9ca3af', type: 'expense', createdAt: Timestamp.now() }
+    // ];
 
-    for (const item of defaults) {
-      await addDoc(ref, { ...item, createdAt: serverTimestamp() });
-    }
+    // for (const item of defaults) {
+    //   await addDoc(ref, { ...item, createdAt: serverTimestamp() });
+    // }
   }
 }

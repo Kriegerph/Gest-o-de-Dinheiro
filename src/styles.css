@@ -21,6 +21,12 @@ body {
   min-height: 100vh;
 }
 
+html.no-page-scroll,
+body.no-page-scroll {
+  height: 100%;
+  overflow: hidden !important;
+}
+
 a {
   color: inherit;
 }
@@ -200,4 +206,50 @@ a {
 .app-table td,
 .app-table th {
   border: 0 !important;
+}
+
+/* ========= EMPTY STATES ========= */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  color: var(--app-muted);
+}
+
+/* ========= SKELETONS ========= */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer 1.4s infinite;
+}
+
+.skeleton-line {
+  height: 12px;
+}
+
+.skeleton-line.lg {
+  height: 18px;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }

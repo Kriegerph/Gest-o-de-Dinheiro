@@ -1,0 +1,153 @@
+:host {
+  display: block;
+}
+
+.chart-card {
+  min-height: 240px;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-bar-track {
+  fill: rgba(255, 255, 255, 0.08);
+}
+
+.chart-label,
+.chart-value {
+  fill: rgba(226, 232, 240, 0.9);
+  font-size: 11px;
+}
+
+.chart-value {
+  fill: rgba(226, 232, 240, 0.8);
+}
+
+.chart-grid line {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.chart-labels text {
+  fill: #fff;
+}
+
+.chart-line {
+  fill: none;
+  stroke-width: 2.4;
+}
+
+.chart-line-income {
+  stroke: #5ad1ff;
+}
+
+.chart-line-expense {
+  stroke: #f2a65a;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-income {
+  background: #5ad1ff;
+}
+
+.legend-expense {
+  background: #f2a65a;
+}
+
+.empty-state {
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.donut-layout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.donut-chart {
+  width: 150px;
+  max-width: 100%;
+}
+
+.donut-hole {
+  fill: rgba(15, 23, 42, 0.8);
+}
+
+.donut-label {
+  fill: rgba(226, 232, 240, 0.7);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.donut-value {
+  fill: rgba(226, 232, 240, 0.95);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.donut-legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.donut-legend-row .legend-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donut-legend-row .legend-value {
+  color: rgba(226, 232, 240, 0.95);
+  font-weight: 600;
+}

@@ -1,5 +1,5 @@
-import { Component, OnDestroy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -12,25 +12,30 @@ import { localDateFromYmd } from '../../shared/utils/date.util';
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.css'
 })
-export class SettingsComponent implements OnDestroy {
+export class SettingsComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
+  private document = inject(DOCUMENT);
   private profileSub?: Subscription;
 
   profileMessage = '';
   emailMessage = '';
   passwordMessage = '';
+  savingProfile = false;
+  sendingEmail = false;
+  updatingPassword = false;
   show = {
     emailCurrent: false,
     passwordCurrent: false,
     passwordNew: false,
     passwordConfirm: false
   };
+  selectedTab: 'perfil' | 'conta' = 'perfil';
 
   profileForm = this.fb.group({
     firstName: new FormControl<string | null>(null, { nonNullable: false, validators: [Validators.required] }),
     lastName: new FormControl<string | null>(null, { nonNullable: false, validators: [Validators.required] }),
-    birthDate: new FormControl<string | null>(null, { nonNullable: false, validators: [Validators.required] }),
+    birthDate: new FormControl<string | null>(null, { nonNullable: false, validators: [Validators.required] })
   });
 
   emailForm = this.fb.group({
@@ -44,7 +49,10 @@ export class SettingsComponent implements OnDestroy {
       newPassword: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required]
     },
-    { validators: (group: any) => (group.get('newPassword')?.value === group.get('confirmPassword')?.value ? null : { mismatch: true }) }
+    {
+      validators: (group: any) =>
+        group.get('newPassword')?.value === group.get('confirmPassword')?.value ? null : { mismatch: true }
+    }
   );
 
   constructor() {
@@ -59,8 +67,23 @@ export class SettingsComponent implements OnDestroy {
     });
   }
 
+  ngOnInit(): void {
+    this.document.body.classList.add('no-page-scroll');
+    this.document.documentElement.classList.add('no-page-scroll');
+  }
+
   ngOnDestroy(): void {
     this.profileSub?.unsubscribe();
+    this.document.body.classList.remove('no-page-scroll');
+    this.document.documentElement.classList.remove('no-page-scroll');
+  }
+
+  setTab(tab: 'perfil' | 'conta') {
+    this.selectedTab = tab;
+  }
+
+  isTabActive(tab: 'perfil' | 'conta') {
+    return this.selectedTab === tab;
   }
 
   async saveProfile() {
@@ -75,6 +98,7 @@ export class SettingsComponent implements OnDestroy {
       this.profileForm.get('birthDate')?.setErrors({ underage: true });
       return;
     }
+    this.savingProfile = true;
     try {
       const { firstName, lastName } = this.profileForm.value;
       await this.auth.updateProfile({
@@ -86,6 +110,8 @@ export class SettingsComponent implements OnDestroy {
       this.profileMessage = 'Perfil atualizado.';
     } catch (err: any) {
       this.profileMessage = err?.message ?? 'Erro ao atualizar perfil.';
+    } finally {
+      this.savingProfile = false;
     }
   }
 
@@ -96,10 +122,11 @@ export class SettingsComponent implements OnDestroy {
       return;
     }
     const { currentPassword, newEmail } = this.emailForm.value;
+    this.sendingEmail = true;
     try {
       await this.auth.requestEmailChange(newEmail!, currentPassword!);
       this.emailMessage =
-        'Enviamos um link de confirmacao para o novo e-mail. Abra o e-mail e clique no link para concluir a alteracao.';
+        'Enviamos um link de confirmação para o novo e-mail. Abra o e-mail e clique no link para concluir a alteração.';
       this.emailForm.reset();
     } catch (err: any) {
       const code = err?.code ?? err?.message;
@@ -108,22 +135,23 @@ export class SettingsComponent implements OnDestroy {
           this.emailMessage = 'Senha atual incorreta.';
           break;
         case 'auth/requires-recent-login':
-          this.emailMessage = 'Por seguranca, faca login novamente e tente de novo.';
+          this.emailMessage = 'Por segurança, faça login novamente e tente de novo.';
           break;
         case 'auth/email-already-in-use':
-          this.emailMessage = 'Esse e-mail ja esta em uso.';
+          this.emailMessage = 'Esse e-mail já está em uso.';
           break;
         case 'auth/invalid-email':
         case 'INVALID_EMAIL':
-          this.emailMessage = 'E-mail invalido.';
+          this.emailMessage = 'E-mail inválido.';
           break;
         case 'OPERATION_NOT_ALLOWED':
-          this.emailMessage =
-            'Seu projeto exige verificacao do novo e-mail. Tente novamente.';
+          this.emailMessage = 'Seu projeto exige verificação do novo e-mail. Tente novamente.';
           break;
         default:
-          this.emailMessage = 'Nao foi possivel solicitar a troca de e-mail.';
+          this.emailMessage = 'Não foi possível solicitar a troca de e-mail.';
       }
+    } finally {
+      this.sendingEmail = false;
     }
   }
 
@@ -134,12 +162,15 @@ export class SettingsComponent implements OnDestroy {
       return;
     }
     const { currentPassword, newPassword } = this.passwordForm.value;
+    this.updatingPassword = true;
     try {
       await this.auth.updateUserPassword(newPassword!, currentPassword!);
       this.passwordMessage = 'Senha atualizada.';
       this.passwordForm.reset();
     } catch (err: any) {
       this.passwordMessage = err?.message ?? 'Erro ao atualizar senha.';
+    } finally {
+      this.updatingPassword = false;
     }
   }
 

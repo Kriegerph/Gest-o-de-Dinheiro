@@ -4,10 +4,12 @@
       <p class="text-uppercase text-primary small mb-1">Planejamento</p>
       <h3 class="fw-bold mb-0">Metas</h3>
     </div>
+
     <div class="d-flex gap-2">
       <select class="form-select glass-input" [(ngModel)]="selectedMonth" (change)="changePeriod()">
         <option *ngFor="let m of months" [ngValue]="m.value">{{ m.label }}</option>
       </select>
+
       <select class="form-select glass-input" [(ngModel)]="selectedYear" (change)="changePeriod()">
         <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
       </select>
@@ -25,18 +27,21 @@
             <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
           </select>
         </div>
+
         <div>
           <label class="form-label text-secondary">Limite (R$)</label>
           <input type="number" class="form-control glass-input" formControlName="limitAmount" min="0" step="0.01" />
         </div>
+
         <div class="d-flex gap-2">
-          <button class="btn btn-primary flex-grow-1" type="submit">
-            {{ editingId ? 'Salvar' : 'Adicionar' }}
+          <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="saving">
+            <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
+            {{ saving ? 'Salvando...' : editingId ? 'Salvar' : 'Adicionar' }}
           </button>
+
           <button class="btn btn-outline-light" type="button" (click)="resetForm()">Limpar</button>
         </div>
       </form>
-      <div *ngIf="message" class="alert alert-info mt-3 mb-0">{{ message }}</div>
     </div>
   </div>
 
@@ -44,22 +49,25 @@
     <div class="glass-card p-3 h-100">
       <h6 class="fw-semibold mb-3">Metas do período</h6>
 
-      <ng-container *ngIf="view$ | async as items; else loading">
-        <ng-container *ngIf="items.length > 0; else empty">
+      <ng-container *ngIf="view$ | async as items; else loadingBudgetsTpl">
+        <ng-container *ngIf="items.length > 0; else emptyBudgetsTpl">
           <div *ngFor="let item of items; trackBy: trackById" class="budget-card p-3 mb-3 rounded">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div>
                 <div class="fw-semibold">{{ item.categoryName }}</div>
                 <small class="text-secondary">{{ selectedMonth }}/{{ selectedYear }}</small>
               </div>
+
               <div class="d-flex gap-2">
                 <button class="btn btn-sm btn-outline-light" (click)="edit(item)">
                   <i class="bi bi-pencil me-1"></i>
                   Editar
                 </button>
-                <button class="btn btn-sm btn-outline-danger" (click)="delete(item)">
-                  <i class="bi bi-trash me-1"></i>
-                  Excluir
+
+                <button class="btn btn-sm btn-outline-danger" (click)="delete(item)"
+                  [disabled]="deletingId === item.id">
+                  <span *ngIf="deletingId === item.id" class="spinner-border spinner-border-sm me-1"></span>
+                  {{ deletingId === item.id ? 'Excluindo...' : 'Excluir' }}
                 </button>
               </div>
             </div>
@@ -67,7 +75,7 @@
             <div class="d-flex justify-content-between text-secondary small">
               <span>Limite: {{ item.limitAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
               <span>Gasto: {{ item.spent | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
-              <span>Restante: {{ item.remaining | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+              <span>Restante do mês: {{ item.remaining | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
             </div>
 
             <div class="progress mt-2" style="height: 8px;">
@@ -76,19 +84,35 @@
             </div>
 
             <div class="text-end small mt-1 text-secondary">{{ item.percent }}% utilizado</div>
+            <div *ngIf="item.percent >= 100" class="text-danger small mt-2">
+              Você excedeu a meta em
+              {{ item.remaining * -1 | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}.
+              Sugestão: reduza em
+              {{ item.remaining * -1 | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              para voltar ao limite.
+            </div>
+
+            <div *ngIf="item.percent >= 80 && item.percent < 100" class="text-warning small mt-2">
+              Alerta: 80% da meta atingido.
+            </div>
           </div>
         </ng-container>
       </ng-container>
 
-      <ng-template #empty>
-        <div class="text-secondary text-center py-3">Nenhuma meta para este período.</div>
+      <ng-template #loadingBudgetsTpl>
+        <div *ngFor="let _ of skeletonRows" class="budget-card p-3 mb-3 rounded">
+          <div class="skeleton skeleton-line w-50 mb-2"></div>
+          <div class="skeleton skeleton-line w-75 mb-3"></div>
+          <div class="skeleton skeleton-line w-100 mb-2"></div>
+          <div class="skeleton skeleton-line w-100 mb-2"></div>
+        </div>
       </ng-template>
 
-      <ng-template #loading>
-        <div class="text-secondary text-center py-3">Carregando metas...</div>
-      </ng-template>
-      <ng-template #empty>
-        <div class="text-secondary text-center py-3">Nenhuma meta para este período.</div>
+      <ng-template #emptyBudgetsTpl>
+        <div class="empty-state">
+          <div>Nenhum dado encontrado para este período.</div>
+          <button class="btn btn-sm btn-primary" type="button" (click)="resetForm()">Criar meta</button>
+        </div>
       </ng-template>
     </div>
   </div>

@@ -40,7 +40,7 @@ export class BudgetsService {
       );
     });
     if (exists) {
-      throw new Error('Ja existe uma meta para esta categoria neste mes.');
+      throw new Error('Já existe uma meta para esta categoria neste mês.');
     }
 
     await addDoc(ref, {

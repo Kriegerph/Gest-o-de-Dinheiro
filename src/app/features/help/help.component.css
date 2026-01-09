@@ -1,0 +1,42 @@
+.page-header h3 {
+  letter-spacing: -0.02em;
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e5e7eb;
+}
+
+.glass-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.2);
+}
+
+.help-card h5 {
+  letter-spacing: -0.01em;
+}
+
+.help-text {
+  margin: 0;
+  color: #cdd5df;
+}
+
+.help-list {
+  margin: 0;
+  padding-left: 1rem;
+  color: #cdd5df;
+}
+
+.help-list li {
+  margin-bottom: 0.35rem;
+}
+
+.faq-item {
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.faq-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}

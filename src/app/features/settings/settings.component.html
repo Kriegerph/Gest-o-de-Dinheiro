@@ -1,158 +1,216 @@
-<div class="container-fluid">
-  <div class="row g-3">
-    <div class="col-12">
-      <p class="text-uppercase text-primary small mb-1">Conta</p>
-      <h3 class="fw-bold mb-0">Configurações</h3>
-    </div>
-
-    <div class="col-12 col-lg-6">
-      <div class="glass-card p-3 h-100">
-        <h6 class="fw-semibold mb-3">Dados pessoais</h6>
-        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-          <div class="row g-2 mb-3">
-            <div class="col-md-6">
-              <label class="form-label text-secondary">Nome</label>
-              <input class="form-control glass-input" formControlName="firstName" placeholder="Ex: Pedro" />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label text-secondary">Sobrenome</label>
-              <input class="form-control glass-input" formControlName="lastName" placeholder="Ex: Krieger" />
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label text-secondary">Data de nascimento</label>
-            <input
-              type="date"
-              class="form-control glass-input"
-              formControlName="birthDate"
-              required
-            />
-            <div class="text-danger" *ngIf="profileForm.get('birthDate')?.errors?.['underage']">
-              Voce precisa ter pelo menos 18 anos.
-            </div>
-          </div>
-          <div class="d-flex flex-column flex-lg-row gap-2">
-            <button class="btn btn-primary w-100 w-lg-auto" type="submit">Salvar dados</button>
-          </div>
-        </form>
-        <div *ngIf="profileMessage" class="alert alert-info mt-3 mb-0">{{ profileMessage }}</div>
+<div class="settings-area settings-overlay">
+  <div class="settings-card">
+    <header class="settings-header">
+      <div class="header-copy">
+        <h1>Configura&ccedil;&otilde;es</h1>
+        <p>Gerencie seus dados pessoais e seguran&ccedil;a da sua conta.</p>
       </div>
-    </div>
+    </header>
 
-    <div class="col-12 col-lg-6">
-      <div class="glass-card p-3 h-100">
-        <h6 class="fw-semibold mb-3">Conta</h6>
+    <div class="settings-body">
+      <aside class="settings-nav">
+        <button
+          class="nav-item"
+          type="button"
+          [class.active]="isTabActive('perfil')"
+          (click)="setTab('perfil')"
+        >
+          <i class="bi bi-person"></i>
+          <span>Perfil</span>
+        </button>
+        <button
+          class="nav-item"
+          type="button"
+          [class.active]="isTabActive('conta')"
+          (click)="setTab('conta')"
+        >
+          <i class="bi bi-shield-lock"></i>
+          <span>Conta</span>
+        </button>
+      </aside>
 
-        <div class="mb-4">
-          <h6 class="fw-semibold mb-3">Alterar e-mail</h6>
-          <form [formGroup]="emailForm" (ngSubmit)="changeEmail()">
-            <div class="mb-3">
-              <label class="form-label text-secondary">Novo e-mail</label>
-              <input
-                type="email"
-                class="form-control glass-input"
-                formControlName="newEmail"
-                placeholder="Ex: voce@exemplo.com"
-              />
+      <section class="settings-content">
+        <div class="settings-content-scroll">
+          <div class="content-inner">
+          <ng-container *ngIf="selectedTab === 'perfil'">
+            <div class="content-header">
+              <h2>Perfil</h2>
+              <p>Informa&ccedil;&otilde;es exibidas no painel e nos relat&oacute;rios.</p>
             </div>
-            <div class="mb-3">
-              <label class="form-label text-secondary">Senha atual</label>
-              <div class="input-group">
-                <input
-                  class="form-control glass-input"
-                  formControlName="currentPassword"
-                  placeholder="Digite sua senha atual"
-                  [type]="show.emailCurrent ? 'text' : 'password'"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-light"
-                  (click)="show.emailCurrent = !show.emailCurrent"
-                  aria-label="Mostrar ou ocultar senha"
-                >
-                  <i class="bi" [ngClass]="show.emailCurrent ? 'bi-eye-slash' : 'bi-eye'"></i>
+
+            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+              <div class="form-grid two">
+                <div class="field">
+                  <label>Nome</label>
+                  <input class="input" type="text" formControlName="firstName" placeholder="Seu nome" />
+                </div>
+
+                <div class="field">
+                  <label>Sobrenome</label>
+                  <input class="input" type="text" formControlName="lastName" placeholder="Seu sobrenome" />
+                </div>
+              </div>
+
+              <div class="form-grid one">
+                <div class="field">
+                  <label>Data de nascimento</label>
+                  <input class="input" type="date" formControlName="birthDate" />
+                  <small class="hint">Usamos isso apenas para personaliza&ccedil;&atilde;o e seguran&ccedil;a.</small>
+                  <small class="error" *ngIf="profileForm.get('birthDate')?.errors?.['underage']">
+                    Voc&ecirc; precisa ter pelo menos 18 anos.
+                  </small>
+                </div>
+              </div>
+
+              <div class="card-actions">
+                <button class="btn btn-primary" type="submit" [disabled]="savingProfile">
+                  <span *ngIf="!savingProfile">Salvar altera&ccedil;&otilde;es</span>
+                  <span *ngIf="savingProfile">Salvando...</span>
                 </button>
               </div>
+            </form>
+
+            <div *ngIf="profileMessage" class="feedback">{{ profileMessage }}</div>
+          </ng-container>
+
+          <ng-container *ngIf="selectedTab === 'conta'">
+            <div class="content-header">
+              <h2>Conta</h2>
+              <p>Atualize seu e-mail e senha com seguran&ccedil;a.</p>
             </div>
-            <div class="d-flex flex-column flex-lg-row gap-2">
-              <button class="btn btn-outline-light w-100 w-lg-auto" type="submit">
-                Enviar confirmacao para novo e-mail
-              </button>
+
+            <div class="block">
+              <div class="block-title">
+                <h3>Alterar e-mail</h3>
+                <p>Enviaremos uma confirma&ccedil;&atilde;o para o novo e-mail.</p>
+              </div>
+
+              <form [formGroup]="emailForm" (ngSubmit)="changeEmail()">
+                <div class="form-grid one">
+                  <div class="field">
+                    <label>Novo e-mail</label>
+                    <input class="input" type="email" formControlName="newEmail" placeholder="voce@exemplo.com" />
+                  </div>
+
+                  <div class="field">
+                    <label>Senha atual</label>
+                    <div class="input-wrap">
+                      <input
+                        class="input"
+                        formControlName="currentPassword"
+                        placeholder="Digite sua senha atual"
+                        [type]="show.emailCurrent ? 'text' : 'password'"
+                      />
+                      <button
+                        class="icon-btn"
+                        type="button"
+                        (click)="show.emailCurrent = !show.emailCurrent"
+                        aria-label="Mostrar senha"
+                      >
+                        <i class="bi" [ngClass]="show.emailCurrent ? 'bi-eye-slash' : 'bi-eye'"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card-actions inline">
+                  <button class="btn btn-outline" type="submit" [disabled]="sendingEmail">
+                    <span *ngIf="!sendingEmail">Enviar confirma&ccedil;&atilde;o</span>
+                    <span *ngIf="sendingEmail">Enviando...</span>
+                  </button>
+                </div>
+              </form>
+
+              <div *ngIf="emailMessage" class="feedback">{{ emailMessage }}</div>
             </div>
-          </form>
-          <div *ngIf="emailMessage" class="alert alert-info mt-3 mb-0">{{ emailMessage }}</div>
+
+            <div class="divider"></div>
+
+            <div class="block">
+              <div class="block-title">
+                <h3>Alterar senha</h3>
+                <p>Escolha uma senha forte. M&iacute;nimo 6 caracteres.</p>
+              </div>
+
+              <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+                <div class="form-grid one">
+                  <div class="field">
+                    <label>Senha atual</label>
+                    <div class="input-wrap">
+                      <input
+                        class="input"
+                        formControlName="currentPassword"
+                        placeholder="Digite sua senha atual"
+                        [type]="show.passwordCurrent ? 'text' : 'password'"
+                      />
+                      <button
+                        class="icon-btn"
+                        type="button"
+                        (click)="show.passwordCurrent = !show.passwordCurrent"
+                        aria-label="Mostrar senha"
+                      >
+                        <i class="bi" [ngClass]="show.passwordCurrent ? 'bi-eye-slash' : 'bi-eye'"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label>Nova senha</label>
+                    <div class="input-wrap">
+                      <input
+                        class="input"
+                        formControlName="newPassword"
+                        placeholder="M&iacute;nimo 6 caracteres"
+                        [type]="show.passwordNew ? 'text' : 'password'"
+                      />
+                      <button
+                        class="icon-btn"
+                        type="button"
+                        (click)="show.passwordNew = !show.passwordNew"
+                        aria-label="Mostrar senha"
+                      >
+                        <i class="bi" [ngClass]="show.passwordNew ? 'bi-eye-slash' : 'bi-eye'"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label>Confirmar nova senha</label>
+                    <div class="input-wrap">
+                      <input
+                        class="input"
+                        formControlName="confirmPassword"
+                        placeholder="Repita a nova senha"
+                        [type]="show.passwordConfirm ? 'text' : 'password'"
+                      />
+                      <button
+                        class="icon-btn"
+                        type="button"
+                        (click)="show.passwordConfirm = !show.passwordConfirm"
+                        aria-label="Mostrar senha"
+                      >
+                        <i class="bi" [ngClass]="show.passwordConfirm ? 'bi-eye-slash' : 'bi-eye'"></i>
+                      </button>
+                    </div>
+                    <small class="error" *ngIf="passwordForm.errors?.['mismatch']">Senhas n&atilde;o conferem.</small>
+                  </div>
+                </div>
+
+                <div class="card-actions">
+                  <button class="btn btn-outline" type="submit" [disabled]="updatingPassword">
+                    <span *ngIf="!updatingPassword">Atualizar senha</span>
+                    <span *ngIf="updatingPassword">Atualizando...</span>
+                  </button>
+                </div>
+              </form>
+
+              <div *ngIf="passwordMessage" class="feedback">{{ passwordMessage }}</div>
+            </div>
+          </ng-container>
+          </div>
         </div>
-
-        <hr class="border-secondary-subtle my-4" />
-
-        <div>
-          <h6 class="fw-semibold mb-3">Alterar senha</h6>
-          <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
-            <div class="mb-3">
-              <label class="form-label text-secondary">Senha atual</label>
-              <div class="input-group">
-                <input
-                  class="form-control glass-input"
-                  formControlName="currentPassword"
-                  placeholder="Digite sua senha atual"
-                  [type]="show.passwordCurrent ? 'text' : 'password'"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-light"
-                  (click)="show.passwordCurrent = !show.passwordCurrent"
-                  aria-label="Mostrar ou ocultar senha"
-                >
-                  <i class="bi" [ngClass]="show.passwordCurrent ? 'bi-eye-slash' : 'bi-eye'"></i>
-                </button>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label text-secondary">Nova senha</label>
-              <div class="input-group">
-                <input
-                  class="form-control glass-input"
-                  formControlName="newPassword"
-                  placeholder="Minimo 6 caracteres"
-                  [type]="show.passwordNew ? 'text' : 'password'"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-light"
-                  (click)="show.passwordNew = !show.passwordNew"
-                  aria-label="Mostrar ou ocultar senha"
-                >
-                  <i class="bi" [ngClass]="show.passwordNew ? 'bi-eye-slash' : 'bi-eye'"></i>
-                </button>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label text-secondary">Confirmar senha</label>
-              <div class="input-group">
-                <input
-                  class="form-control glass-input"
-                  formControlName="confirmPassword"
-                  placeholder="Repita a nova senha"
-                  [type]="show.passwordConfirm ? 'text' : 'password'"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-light"
-                  (click)="show.passwordConfirm = !show.passwordConfirm"
-                  aria-label="Mostrar ou ocultar senha"
-                >
-                  <i class="bi" [ngClass]="show.passwordConfirm ? 'bi-eye-slash' : 'bi-eye'"></i>
-                </button>
-              </div>
-              <small class="text-danger" *ngIf="passwordForm.errors?.['mismatch']">Senhas nao conferem.</small>
-            </div>
-            <div class="d-flex flex-column flex-lg-row gap-2">
-              <button class="btn btn-outline-light w-100 w-lg-auto" type="submit">Atualizar senha</button>
-            </div>
-          </form>
-          <div *ngIf="passwordMessage" class="alert alert-info mt-3 mb-0">{{ passwordMessage }}</div>
-        </div>
-      </div>
+      </section>
     </div>
   </div>
 </div>
+

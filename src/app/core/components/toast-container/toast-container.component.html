@@ -1,0 +1,36 @@
+<div class="toast-container" aria-live="polite">
+  <div class="toast-stack">
+    <div
+      *ngFor="let toast of toasts$ | async; trackBy: trackById"
+      class="toast toast-item"
+      [ngClass]="{
+        'toast-success': toast.type === 'success',
+        'toast-error': toast.type === 'error',
+        'toast-info': toast.type === 'info',
+        'toast-warning': toast.type === 'warning'
+      }"
+      role="status"
+      (click)="stop($event)"
+    >
+      <div class="toast-message">{{ toast.message }}</div>
+      <div class="toast-actions">
+        <button
+          *ngIf="toast.actionLabel"
+          type="button"
+          class="btn btn-sm btn-outline-light"
+          (click)="handleAction(toast); stop($event)"
+        >
+          {{ toast.actionLabel }}
+        </button>
+        <button
+          type="button"
+          class="toast-close"
+          (click)="dismiss(toast.id); stop($event)"
+          aria-label="Fechar"
+        >
+          &times;
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

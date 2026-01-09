@@ -27,10 +27,10 @@
         <label class="form-label text-secondary">Data de nascimento</label>
         <input type="date" class="form-control glass-input" formControlName="birthDate" required />
         <small class="text-danger" *ngIf="form.get('birthDate')?.touched && form.get('birthDate')?.invalid">
-          Informe uma data valida.
+          Informe uma data válida.
         </small>
         <div class="text-danger" *ngIf="form.get('birthDate')?.errors?.['underage']">
-          Voce precisa ter pelo menos 18 anos.
+          Você precisa ter pelo menos 18 anos.
         </div>
       </div>
 
@@ -61,7 +61,7 @@
           </button>
         </div>
         <small class="text-danger" *ngIf="form.get('password')?.touched && form.get('password')?.invalid">
-          M??nimo de 6 caracteres.
+          Mínimo de 6 caracteres.
         </small>
       </div>
 
@@ -84,7 +84,7 @@
           </button>
         </div>
         <small class="text-danger" *ngIf="form.errors?.['mismatch'] && form.get('confirmPassword')?.touched">
-          As senhas n??o conferem.
+          As senhas não conferem.
         </small>
       </div>
 

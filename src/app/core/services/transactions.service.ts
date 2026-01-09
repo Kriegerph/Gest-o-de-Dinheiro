@@ -91,6 +91,9 @@ export class TransactionsService {
       amount: number;
       date: string;
       categoryId?: string | null;
+      accountId?: string | null;
+      accountOriginId?: string | null;
+      accountDestinationId?: string | null;
       notes?: string | null;
     }
   ): Promise<void> {
@@ -98,6 +101,9 @@ export class TransactionsService {
     await addDoc(ref, {
       ...data,
       categoryId: data.categoryId || null,
+      accountId: data.accountId || null,
+      accountOriginId: data.accountOriginId || null,
+      accountDestinationId: data.accountDestinationId || null,
       notes: data.notes || null,
       date: data.date,
       createdAt: serverTimestamp()
@@ -113,6 +119,9 @@ export class TransactionsService {
       amount: number;
       date: string;
       categoryId?: string | null;
+      accountId?: string | null;
+      accountOriginId?: string | null;
+      accountDestinationId?: string | null;
       notes?: string | null;
     }
   ): Promise<void> {
@@ -120,6 +129,9 @@ export class TransactionsService {
     await updateDoc(ref, {
       ...data,
       categoryId: data.categoryId || null,
+      accountId: data.accountId || null,
+      accountOriginId: data.accountOriginId || null,
+      accountDestinationId: data.accountDestinationId || null,
       notes: data.notes || null,
       date: data.date
     });

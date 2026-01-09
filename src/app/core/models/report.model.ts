@@ -17,3 +17,17 @@ export interface ReportResult {
   byCategory: CategoryReportItem[];
   transactions: Transaction[];
 }
+
+export interface AnnualReportMonth {
+  month: number;
+  income: number;
+  expense: number;
+  balance: number;
+}
+
+export interface AnnualReportResult {
+  year: number;
+  months: AnnualReportMonth[];
+  totals: FinancialSummary;
+  hasData: boolean;
+}

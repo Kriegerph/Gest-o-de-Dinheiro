@@ -91,7 +91,7 @@ export class AuthService {
   ): Promise<void> {
     const user = this.auth.currentUser;
     if (!user) {
-      throw new Error('Usuario nao autenticado');
+      throw new Error('Usuário não autenticado');
     }
     const ref = doc(this.firestore, `users/${user.uid}`);
     await updateDoc(ref, {

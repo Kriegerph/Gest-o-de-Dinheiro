@@ -11,74 +11,404 @@
     </div>
   </div>
 
-  <div class="col-md-4">
-    <div class="glass-card p-3 h-100">
-      <div class="text-secondary small">Saldo</div>
-      <h2 class="fw-bold text-light">
-        {{ (summary$ | async)?.balance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-      </h2>
-      <p class="text-success small">Atualizado em tempo real</p>
+  <div class="col-12" *ngIf="(hasTransactions$ | async) === false">
+    <div class="glass-card p-3">
+      <div class="empty-state">
+        <div>Nenhum dado encontrado para este período.</div>
+      </div>
     </div>
   </div>
 
-  <div class="col-md-4">
-    <div class="glass-card p-3 h-100">
-      <div class="text-secondary small">Entradas</div>
-      <h3 class="fw-bold text-info">
-        {{ (summary$ | async)?.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-      </h3>
-      <p class="small text-secondary">Receitas do mês</p>
+  <ng-container *ngIf="summary$ | async as summary; else summaryLoadingTpl">
+    <div class="col-md-4">
+      <div class="glass-card p-3 h-100">
+        <div class="text-secondary small">Saldo</div>
+        <h2 class="fw-bold text-light">
+          {{ totalBalance$ | async | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+        </h2>
+        <p class="text-success small">Atualizado em tempo real</p>
+      </div>
     </div>
+
+    <div class="col-md-4">
+      <div class="glass-card p-3 h-100">
+        <div class="text-secondary small">Entradas</div>
+        <h3 class="fw-bold text-info">
+          {{ summary.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+        </h3>
+        <p class="small text-secondary">Receitas do mês</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="glass-card p-3 h-100">
+        <div class="text-secondary small">Saídas</div>
+        <h3 class="fw-bold text-warning">
+          {{ summary.totalExpense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+        </h3>
+        <p class="small text-secondary">Despesas do mês</p>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #summaryLoadingTpl>
+    <div class="col-md-4" *ngFor="let _ of skeletonCards">
+      <div class="glass-card p-3 h-100">
+        <div class="skeleton skeleton-line w-50 mb-2"></div>
+        <div class="skeleton skeleton-line lg w-75"></div>
+        <div class="skeleton skeleton-line w-75 mt-2"></div>
+      </div>
+    </div>
+  </ng-template>
+
+  <div class="col-lg-6">
+    <ng-container *ngIf="balancesByAccount$ | async as balances; else balancesLoadingTpl">
+      <div class="glass-card p-3 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h6 class="fw-semibold mb-0">Saldo por conta</h6>
+          <a class="btn btn-sm btn-outline-light" routerLink="/app/accounts">Ver todas</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Conta</th>
+                <th class="text-end">Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let account of balances">
+                <td>{{ account.name }}</td>
+                <td class="text-end fw-semibold">
+                  {{ account.currentBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </td>
+              </tr>
+              <tr *ngIf="balances.length === 0">
+                <td colspan="2" class="text-center text-secondary py-3">Sem contas cadastradas.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-template #balancesLoadingTpl>
+      <div class="glass-card p-3 h-100">
+        <div class="skeleton skeleton-line w-50 mb-3"></div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Conta</th>
+                <th class="text-end">Saldo</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let _ of skeletonRows">
+                <td>
+                  <div class="skeleton skeleton-line w-75"></div>
+                </td>
+                <td class="text-end">
+                  <div class="skeleton skeleton-line w-50 ms-auto"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-template>
   </div>
 
-  <div class="col-md-4">
-    <div class="glass-card p-3 h-100">
-      <div class="text-secondary small">Saídas</div>
-      <h3 class="fw-bold text-warning">
-        {{ (summary$ | async)?.totalExpense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-      </h3>
-      <p class="small text-secondary">Despesas do mês</p>
+  <div class="col-lg-6">
+    <ng-container *ngIf="topCategories$ | async as categories; else categoriesLoadingTpl">
+      <div class="glass-card p-3 h-100">
+        <div class="card-header-row">
+          <h5 class="card-title m-0">Distribuição de gastos</h5>
+          <button
+            type="button"
+            class="btn btn-outline-light btn-sm card-action"
+            routerLink="/app/transactions"
+          >
+            Ver todas
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Categoria</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of categories">
+                <td>{{ item.categoryName }}</td>
+                <td class="text-end fw-semibold">
+                  {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </td>
+              </tr>
+              <tr *ngIf="categories.length === 0">
+                <td colspan="2" class="text-center text-secondary py-3">Sem dados.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-template #categoriesLoadingTpl>
+      <div class="glass-card p-3 h-100">
+        <div class="skeleton skeleton-line w-50 mb-3"></div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Categoria</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let _ of skeletonRows">
+                <td>
+                  <div class="skeleton skeleton-line w-75"></div>
+                </td>
+                <td class="text-end">
+                  <div class="skeleton skeleton-line w-50 ms-auto"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+
+  <ng-container *ngIf="hasTransactions$ | async">
+    <div class="col-12">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <p class="text-uppercase text-primary small mb-1">Insights</p>
+          <h5 class="mb-0 fw-semibold">Resumo inteligente</h5>
+        </div>
+        <span class="text-secondary small">Comparações do período</span>
+      </div>
+    </div>
+
+    <ng-container *ngIf="insights$ | async as insights">
+      <div class="col-md-6 col-lg-3">
+        <div class="glass-card p-3 h-100">
+          <div class="text-secondary small mb-2">Comparação mensal</div>
+          <ng-container *ngIf="insights.comparison.hasHistory; else noHistory">
+            <div class="fw-semibold">
+              Você gastou {{ insights.comparison.percent | number:'1.0-0' }}% a
+              {{ insights.comparison.direction }} em relação ao mês anterior.
+            </div>
+          </ng-container>
+
+          <ng-template #noHistory>
+            <div class="text-secondary">Sem histórico suficiente para comparação.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="glass-card p-3 h-100">
+          <div class="text-secondary small mb-2">Maior despesa</div>
+          <ng-container *ngIf="insights.largestExpense as largest; else noLargest">
+            <div class="fw-semibold">
+              {{ largest.description }}
+              ({{ largest.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }})
+            </div>
+            <div class="text-secondary small">em {{ formatDate(largest.date) }}</div>
+          </ng-container>
+
+          <ng-template #noLargest>
+            <div class="text-secondary">Sem despesas no período.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="glass-card p-3 h-100">
+          <div class="text-secondary small mb-2">Categoria destaque</div>
+          <ng-container *ngIf="insights.topCategory as top; else noTop">
+            <div class="fw-semibold">
+              {{ top.categoryName }}
+              ({{ top.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }})
+            </div>
+          </ng-container>
+
+          <ng-template #noTop>
+            <div class="text-secondary">Sem despesas no período.</div>
+          </ng-template>
+        </div>
+      </div>
+    </ng-container>
+
+    <div class="col-md-6 col-lg-3">
+      <div class="glass-card p-3 h-100">
+        <div class="text-secondary small mb-2">Média de despesas</div>
+        <ng-container *ngIf="averageComparison$ | async as average">
+          <ng-container *ngIf="average.ready; else averageFallbackTpl">
+            <div class="fw-semibold">
+              Sua média (ultimos {{ average.months }} meses):
+              {{ average.average | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            </div>
+            <div class="text-secondary small">
+              Este mês: {{ average.current | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              ({{ average.diffPercent >= 0 ? '+' : '' }}{{ average.diffPercent | number:'1.0-0' }}%)
+            </div>
+          </ng-container>
+
+          <ng-template #averageFallbackTpl>
+            <div class="muted">{{ averageMessage }}</div>
+          </ng-template>
+        </ng-container>
+      </div>
+    </div>
+  </ng-container>
+
+  <div class="col-12">
+    <ng-container *ngIf="largestExpenseState$ | async as largestState">
+      <ng-container *ngIf="largestState.ready; else largestLoadingTpl">
+        <div class="glass-card p-3 h-100">
+          <h6 class="fw-semibold mb-3">Maior despesa do mês</h6>
+          <div *ngIf="largestState.value; else noExpense">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-semibold">{{ largestState.value.description }}</div>
+                <div class="text-secondary small">
+                  {{ largestState.value.categoryName }} - {{ formatDate(largestState.value.date) }}
+                </div>
+              </div>
+
+              <div class="fw-bold text-warning">
+                {{ largestState.value.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </div>
+            </div>
+          </div>
+
+          <ng-template #noExpense>
+            <div class="text-secondary">Nenhuma despesa no mês.</div>
+          </ng-template>
+        </div>
+      </ng-container>
+    </ng-container>
+
+    <ng-template #largestLoadingTpl>
+      <div class="glass-card p-3 h-100">
+        <div class="skeleton skeleton-line w-50 mb-3"></div>
+        <div class="skeleton skeleton-line w-100 mb-2"></div>
+        <div class="skeleton skeleton-line w-50"></div>
+      </div>
+    </ng-template>
+  </div>
+
+  <div class="col-12">
+    <ng-container *ngIf="recent$ | async as recent; else recentLoadingTpl">
+      <div class="glass-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0 fw-semibold">Últimas transações</h5>
+          <span class="badge text-light">Atualizado</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Tipo</th>
+                <th class="text-end">Valor</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let tx of recent; trackBy: trackById">
+                <td>{{ formatDate(tx.date) }}</td>
+                <td class="text-truncate" style="max-width: 220px;">{{ tx.description }}</td>
+                <td>
+                  <span class="badge" [ngClass]="{
+                      'bg-success-subtle text-success': tx.type === 'income',
+                      'bg-danger-subtle text-danger': tx.type === 'expense',
+                      'bg-info-subtle text-info': tx.type === 'transfer'
+                    }">
+                    {{ tx.type === 'income' ? 'Receita' : tx.type === 'expense' ? 'Despesa' : 'Transferencia' }}
+                  </span>
+                </td>
+
+                <td class="text-end fw-semibold">
+                  {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </td>
+              </tr>
+
+              <tr *ngIf="recent.length === 0">
+                <td colspan="4" class="text-center text-secondary py-3">Sem transações ainda.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-template #recentLoadingTpl>
+      <div class="glass-card p-3">
+        <div class="skeleton skeleton-line w-50 mb-3"></div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Tipo</th>
+                <th class="text-end">Valor</th>
+              </tr>
+            </thead>
+            
+            <tbody>
+              <tr *ngFor="let _ of skeletonRows">
+                <td>
+                  <div class="skeleton skeleton-line w-75"></div>
+                </td>
+                <td>
+                  <div class="skeleton skeleton-line w-100"></div>
+                </td>
+                <td>
+                  <div class="skeleton skeleton-line w-50"></div>
+                </td>
+                <td class="text-end">
+                  <div class="skeleton skeleton-line w-50 ms-auto"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+
+  <div class="col-12">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <p class="text-uppercase text-primary small mb-1">Indicadores</p>
+        <h5 class="mb-0 fw-semibold">Gráficos do mês</h5>
+      </div>
+      <span class="text-secondary small">Resumo visual</span>
     </div>
   </div>
 
   <div class="col-12">
-    <div class="glass-card p-3">
-      <div class="d-flex align-items-center justify-content-between mb-3">
-        <h5 class="mb-0 fw-semibold">Últimas transações</h5>
-        <span class="badge text-light">Atualizado</span>
+    <ng-container *ngIf="charts$ | async as charts; else chartsLoadingTpl">
+      <app-dashboard-charts [topCategorias]="charts.topCategories" [seriesDiariaEntradas]="charts.dailyIncome"
+        [seriesDiariaSaidas]="charts.dailyExpense" [contasSaldos]="charts.accounts"></app-dashboard-charts>
+    </ng-container>
+
+    <ng-template #chartsLoadingTpl>
+      <div class="glass-card p-3">
+        <div class="skeleton skeleton-line w-50 mb-3"></div>
+        <div class="skeleton" style="height: 220px;"></div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle table-sm app-table">
-          <thead>
-            <tr class="text-secondary">
-              <th>Data</th>
-              <th>Descrição</th>
-              <th>Tipo</th>
-              <th class="text-end">Valor</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let tx of recent$ | async; trackBy: trackById">
-              <td>{{ formatDate(tx.date) }}</td>
-              <td class="text-truncate" style="max-width: 220px;">{{ tx.description }}</td>
-              <td>
-                <span
-                  class="badge"
-                  [ngClass]="{ 'bg-success-subtle text-success': tx.type === 'income', 'bg-danger-subtle text-danger': tx.type === 'expense' }"
-                >
-                  {{ tx.type === 'income' ? 'Receita' : 'Despesa' }}
-                </span>
-              </td>
-              <td class="text-end fw-semibold">
-                {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-              </td>
-            </tr>
-            <tr *ngIf="(recent$ | async)?.length === 0">
-              <td colspan="4" class="text-center text-secondary py-3">Sem transações ainda.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </ng-template>
   </div>
 </div>

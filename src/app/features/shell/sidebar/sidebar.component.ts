@@ -16,9 +16,11 @@ export class SidebarComponent {
   readonly links = [
     { label: 'Dashboard', icon: 'bi-speedometer2', path: '/app/dashboard' },
     { label: 'Lançamentos', icon: 'bi-arrow-left-right', path: '/app/transactions' },
+    { label: 'Contas', icon: 'bi-wallet2', path: '/app/accounts' },
     { label: 'Categorias', icon: 'bi-collection', path: '/app/categories' },
     { label: 'Metas', icon: 'bi-bullseye', path: '/app/budgets' },
     { label: 'Relatórios', icon: 'bi-graph-up', path: '/app/reports' },
+    { label: 'Ajuda', icon: 'bi-question-circle', path: '/app/ajuda' },
     { label: 'Configurações', icon: 'bi-gear', path: '/app/settings' }
   ];
 }

@@ -6,9 +6,11 @@ import { RegisterComponent } from './features/auth/register/register.component';
 import { ShellLayoutComponent } from './features/shell/layout/shell-layout.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { TransactionsComponent } from './features/transactions/transactions.component';
+import { AccountsComponent } from './features/accounts/accounts.component';
 import { CategoriesComponent } from './features/categories/categories.component';
 import { BudgetsComponent } from './features/budgets/budgets.component';
 import { ReportsComponent } from './features/reports/reports.component';
+import { HelpComponent } from './features/help/help.component';
 import { SettingsComponent } from './features/settings/settings.component';
 
 export const routes: Routes = [
@@ -33,9 +35,11 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'transactions', component: TransactionsComponent },
+      { path: 'accounts', component: AccountsComponent },
       { path: 'categories', component: CategoriesComponent },
       { path: 'budgets', component: BudgetsComponent },
       { path: 'reports', component: ReportsComponent },
+      { path: 'ajuda', component: HelpComponent },
       { path: 'settings', component: SettingsComponent },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' }
     ]

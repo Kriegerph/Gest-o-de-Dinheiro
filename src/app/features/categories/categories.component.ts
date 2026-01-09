@@ -1,10 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { BehaviorSubject, combineLatest, of, switchMap, map, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, catchError, combineLatest, of, switchMap, map, firstValueFrom, tap } from 'rxjs';
 import { CategoriesService } from '../../core/services/categories.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Category, CategoryType } from '../../core/models/category.model';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-categories',
@@ -17,9 +18,13 @@ export class CategoriesComponent {
   private fb = inject(FormBuilder);
   private categoriesService = inject(CategoriesService);
   private auth = inject(AuthService);
+  private notifications = inject(NotificationService);
 
-  message = '';
   editingId: string | null = null;
+  loadingCategories = true;
+  saving = false;
+  deletingId: string | null = null;
+  readonly skeletonRows = Array.from({ length: 5 });
   private searchTerm$ = new BehaviorSubject<string>('');
 
   form = this.fb.group({
@@ -33,11 +38,16 @@ export class CategoriesComponent {
       user
         ? this.categoriesService.list$(user.uid).pipe(
             map((items) =>
-              items.filter((c) => c.name.toLowerCase().includes((term || '').toLowerCase()))
+              (items ?? []).filter((c) => c.name.toLowerCase().includes((term || '').toLowerCase()))
             )
           )
         : of([])
-    )
+    ),
+    tap(() => (this.loadingCategories = false)),
+    catchError(() => {
+      this.loadingCategories = false;
+      return of([] as Category[]);
+    })
   );
 
   trackById(_: number, item: Category) {
@@ -60,7 +70,6 @@ export class CategoriesComponent {
   resetForm() {
     this.editingId = null;
     this.form.reset({ color: '#6366f1', type: null });
-    this.message = '';
   }
 
   toggleCategoryType(next: CategoryType) {
@@ -70,14 +79,15 @@ export class CategoriesComponent {
   }
 
   async save() {
-    this.message = '';
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.notifications.warning('Preencha os campos obrigatórios.');
       return;
     }
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;
     const { name, color, type } = this.form.value;
+    this.saving = true;
     try {
       if (this.editingId) {
         await this.categoriesService.update(user.uid, this.editingId, {
@@ -85,18 +95,19 @@ export class CategoriesComponent {
           color: color!,
           type: type!
         });
-        this.message = 'Categoria atualizada.';
       } else {
         await this.categoriesService.add(user.uid, {
           name: name!,
           color: color!,
           type: type!
         });
-        this.message = 'Categoria adicionada.';
       }
+      this.notifications.success('Salvo com sucesso');
       this.resetForm();
     } catch (err: any) {
-      this.message = err?.message ?? 'Erro ao salvar categoria.';
+      this.notifications.error('Não foi possível concluir. Tente novamente.');
+    } finally {
+      this.saving = false;
     }
   }
 
@@ -105,11 +116,16 @@ export class CategoriesComponent {
     if (!confirmed || !category.id) return;
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;
+    this.deletingId = category.id;
     try {
       await this.categoriesService.delete(user.uid, category.id);
-      this.message = 'Categoria removida.';
+      this.notifications.success('Excluído com sucesso');
     } catch (err: any) {
-      this.message = err?.message ?? 'Erro ao excluir categoria.';
+      this.notifications.error('Não foi possível concluir. Tente novamente.');
+    } finally {
+      if (this.deletingId === category.id) {
+        this.deletingId = null;
+      }
     }
   }
 }

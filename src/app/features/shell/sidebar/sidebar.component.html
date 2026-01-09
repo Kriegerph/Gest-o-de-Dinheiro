@@ -1,24 +1,48 @@
 <aside class="sidebar glass-card" [class.open]="isOpen">
-  <div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-      <div class="text-uppercase text-primary fw-semibold small">GestaoDeGastos</div>
-      <div class="fw-bold fs-5">Painel</div>
+  <div class="sidebar-main">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <div class="text-uppercase text-primary fw-semibold small">GestaoDeGastos</div>
+        <div class="fw-bold fs-5">Painel</div>
+      </div>
     </div>
+
+    <nav>
+      <ul class="list-unstyled d-flex flex-column gap-2">
+        <li *ngFor="let link of links.slice(0, -2)">
+          <a
+            [routerLink]="link.path"
+            routerLinkActive="active"
+            class="sidebar-link d-flex align-items-center gap-3"
+            (click)="navigate.emit()"
+          >
+            <i class="bi" [ngClass]="link.icon"></i>
+            <span>{{ link.label }}</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
   </div>
 
-  <nav>
-    <ul class="list-unstyled d-flex flex-column gap-2">
-      <li *ngFor="let link of links">
-        <a
-          [routerLink]="link.path"
-          routerLinkActive="active"
-          class="sidebar-link d-flex align-items-center gap-3"
-          (click)="navigate.emit()"
-        >
-          <i class="bi" [ngClass]="link.icon"></i>
-          <span>{{ link.label }}</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
+  <div class="sidebar-footer" *ngIf="links.length > 1">
+    <a
+      [routerLink]="links[links.length - 2].path"
+      routerLinkActive="active"
+      class="sidebar-link d-flex align-items-center gap-3"
+      (click)="navigate.emit()"
+    >
+      <i class="bi" [ngClass]="links[links.length - 2].icon"></i>
+      <span>{{ links[links.length - 2].label }}</span>
+    </a>
+    <a
+      [routerLink]="links[links.length - 1].path"
+      routerLinkActive="active"
+      class="sidebar-link d-flex align-items-center gap-3"
+      (click)="navigate.emit()"
+    >
+      <i class="bi" [ngClass]="links[links.length - 1].icon"></i>
+      <span>{{ links[links.length - 1].label }}</span>
+    </a>
+    <div class="sidebar-watermark">Gestao de Gastos - Pedro Krieger</div>
+  </div>
 </aside>

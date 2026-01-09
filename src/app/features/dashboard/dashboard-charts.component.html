@@ -1,0 +1,159 @@
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="glass-card p-3 h-100 chart-card">
+      <div class="chart-header">
+        <h6 class="fw-semibold mb-0">Gastos por categoria (Top 5)</h6>
+        <span class="text-secondary small">Mês atual</span>
+      </div>
+      <ng-container *ngIf="!barChartEmpty; else barEmpty">
+        <svg
+          class="chart-svg"
+          [attr.viewBox]="barChartViewBox"
+          [attr.height]="barChartHeight"
+          role="img"
+          aria-label="Gastos por categoria"
+        >
+          <g *ngFor="let row of barRows">
+            <text
+              class="chart-label"
+              [attr.x]="0"
+              [attr.y]="row.labelY"
+              dominant-baseline="middle"
+            >
+              {{ row.label }}
+            </text>
+            <rect
+              class="chart-bar-track"
+              [attr.x]="barAreaX"
+              [attr.y]="row.y"
+              [attr.width]="barTrackWidth"
+              [attr.height]="barChartBarHeight"
+              rx="6"
+            ></rect>
+            <rect
+              class="chart-bar"
+              [attr.x]="barAreaX"
+              [attr.y]="row.y"
+              [attr.width]="row.width"
+              [attr.height]="barChartBarHeight"
+              [attr.fill]="row.color"
+              rx="6"
+            ></rect>
+            <text
+              class="chart-value"
+              [attr.x]="barValueX"
+              [attr.y]="row.labelY"
+              dominant-baseline="middle"
+              text-anchor="end"
+            >
+              {{ row.value | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            </text>
+          </g>
+        </svg>
+      </ng-container>
+      <ng-template #barEmpty>
+        <div class="text-secondary small empty-state">Sem dados no período</div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="glass-card p-3 h-100 chart-card">
+      <div class="chart-header">
+        <h6 class="fw-semibold mb-0">Entradas x Saídas por dia</h6>
+        <div class="chart-legend">
+          <span class="legend-item">
+            <span class="legend-dot legend-income"></span>
+            Entradas
+          </span>
+          <span class="legend-item">
+            <span class="legend-dot legend-expense"></span>
+            Saídas
+          </span>
+        </div>
+      </div>
+      <ng-container *ngIf="!lineChartEmpty; else lineEmpty">
+        <svg
+          class="chart-svg line-chart"
+          [attr.viewBox]="lineChartViewBox"
+          [attr.height]="lineChartHeight"
+          role="img"
+          aria-label="Entradas e saidas por dia"
+        >
+          <g class="chart-grid">
+            <line
+              *ngFor="let gridY of lineGrid"
+              [attr.x1]="linePaddingX"
+              [attr.x2]="linePaddingX + linePlotWidth"
+              [attr.y1]="gridY"
+              [attr.y2]="gridY"
+            ></line>
+          </g>
+          <path class="chart-line chart-line-income" [attr.d]="lineIncomePath"></path>
+          <path class="chart-line chart-line-expense" [attr.d]="lineExpensePath"></path>
+          <g class="chart-labels">
+            <text
+              *ngFor="let label of lineLabels"
+              [attr.x]="label.x"
+              [attr.y]="lineLabelY"
+              text-anchor="middle"
+            >
+              {{ label.text }}
+            </text>
+          </g>
+        </svg>
+      </ng-container>
+      <ng-template #lineEmpty>
+        <div class="text-secondary small empty-state">Sem dados no período</div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="glass-card p-3 h-100 chart-card">
+      <div class="chart-header">
+        <h6 class="fw-semibold mb-0">Distribuição do saldo por conta</h6>
+        <span class="text-secondary small">Saldo atual</span>
+      </div>
+      <ng-container *ngIf="!donutChartEmpty; else donutEmpty">
+        <div class="donut-layout">
+          <svg
+            class="chart-svg donut-chart"
+            [attr.viewBox]="donutViewBox"
+            [attr.height]="donutSize"
+            role="img"
+            aria-label="Distribuição do saldo por conta"
+          >
+            <g>
+              <path *ngFor="let slice of donutSegments" [attr.d]="slice.path" [attr.fill]="slice.color"></path>
+              <circle
+                class="donut-hole"
+                [attr.cx]="donutCenter"
+                [attr.cy]="donutCenter"
+                [attr.r]="donutInnerRadius"
+              ></circle>
+              <text class="donut-label" [attr.x]="donutCenter" [attr.y]="donutCenter - 6" text-anchor="middle">
+                Total
+              </text>
+              <text class="donut-value" [attr.x]="donutCenter" [attr.y]="donutCenter + 12" text-anchor="middle">
+                {{ donutTotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </text>
+            </g>
+          </svg>
+          <div class="donut-legend">
+            <div class="donut-legend-row" *ngFor="let slice of donutSegments">
+              <span class="legend-dot" [style.background]="slice.color"></span>
+              <span class="legend-label">{{ slice.label }}</span>
+              <span class="legend-value">
+                {{ slice.value | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      <ng-template #donutEmpty>
+        <div class="text-secondary small empty-state">Sem dados no período</div>
+      </ng-template>
+    </div>
+  </div>
+</div>

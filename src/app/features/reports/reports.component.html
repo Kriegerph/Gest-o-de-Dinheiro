@@ -4,116 +4,354 @@
       <p class="text-uppercase text-primary small mb-1">Análises</p>
       <h3 class="fw-bold mb-0">Relatórios</h3>
     </div>
-    <button class="btn btn-outline-light" (click)="exportXlsx()">Exportar Excel</button>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="btn-group" role="group" aria-label="Modo de relatorio">
+        <button class="btn btn-outline-light" [class.active]="viewMode === 'period'" type="button"
+          (click)="setViewMode('period')">
+          Período
+        </button>
+
+        <button class="btn btn-outline-light" [class.active]="viewMode === 'annual'" type="button"
+          (click)="setViewMode('annual')">
+          Relatório anual
+        </button>
+      </div>
+
+      <ng-container *ngIf="viewMode === 'period'">
+        <button class="btn btn-outline-light" (click)="exportCsv()" [disabled]="exportingCsv">
+          <span *ngIf="exportingCsv" class="spinner-border spinner-border-sm me-2"></span>
+          {{ exportingCsv ? 'Exportando...' : 'Exportar CSV' }}
+        </button>
+
+        <button class="btn btn-outline-light" (click)="exportXlsx()" [disabled]="exportingXlsx">
+          <span *ngIf="exportingXlsx" class="spinner-border spinner-border-sm me-2"></span>
+          {{ exportingXlsx ? 'Exportando...' : 'Exportar Excel' }}
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="viewMode === 'annual'">
+        <button class="btn btn-outline-light" (click)="exportAnnualCsv()" [disabled]="exportingAnnualCsv">
+          <span *ngIf="exportingAnnualCsv" class="spinner-border spinner-border-sm me-2"></span>
+          {{ exportingAnnualCsv ? 'Exportando...' : 'Exportar CSV' }}
+        </button>
+
+        <button class="btn btn-outline-light" (click)="exportAnnualXlsx()" [disabled]="exportingAnnualXlsx">
+          <span *ngIf="exportingAnnualXlsx" class="spinner-border spinner-border-sm me-2"></span>
+          {{ exportingAnnualXlsx ? 'Exportando...' : 'Exportar Excel' }}
+        </button>
+      </ng-container>
+    </div>
   </div>
 
-  <div class="col-12">
-    <div class="glass-card p-3">
-      <form [formGroup]="form" class="row g-3 align-items-end" (ngSubmit)="applyFilters()">
-        <div class="col-md-4">
-          <label class="form-label text-secondary">Início</label>
-          <input type="date" class="form-control glass-input" formControlName="start" />
-        </div>
-        <div class="col-md-4">
-          <label class="form-label text-secondary">Fim</label>
-          <input type="date" class="form-control glass-input" formControlName="end" />
-        </div>
-        <div class="col-md-4">
-          <button class="btn btn-primary w-100" type="submit">Gerar</button>
-        </div>
-      </form>
-      <div *ngIf="message" class="alert alert-warning mt-3 mb-0">{{ message }}</div>
-    </div>
-  </div>
-
-  <ng-container *ngIf="report$ | async as report">
-    <div class="col-md-4">
-      <div class="glass-card p-3 h-100">
-        <div class="text-secondary small">Entradas</div>
-        <h4 class="fw-bold text-info">
-          {{ report.summary.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-        </h4>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="glass-card p-3 h-100">
-        <div class="text-secondary small">Saídas</div>
-        <h4 class="fw-bold text-warning">
-          {{ report.summary.totalExpense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-        </h4>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="glass-card p-3 h-100">
-        <div class="text-secondary small">Saldo</div>
-        <h4 class="fw-bold text-light">
-          {{ report.summary.balance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-        </h4>
+  <ng-container *ngIf="viewMode === 'period'">
+    <div class="col-12">
+      <div class="glass-card p-3">
+        <form [formGroup]="form" class="row g-3 align-items-end" (ngSubmit)="applyFilters()">
+          <div class="col-md-4">
+            <label class="form-label text-secondary">Início</label>
+            <input type="date" class="form-control glass-input" formControlName="start" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label text-secondary">Fim</label>
+            <input type="date" class="form-control glass-input" formControlName="end" />
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-primary w-100" type="submit">Gerar</button>
+          </div>
+        </form>
       </div>
     </div>
 
-    <div class="col-lg-6">
-      <div class="glass-card p-3 h-100">
-        <h6 class="fw-semibold mb-3">Gasto por categoria</h6>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle table-sm app-table">
-            <thead>
-              <tr class="text-secondary">
-                <th>Categoria</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of report?.byCategory">
-                <td>{{ item.categoryName || 'Categoria' }}</td>
-                <td class="text-end fw-semibold">
-                  {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                </td>
-              </tr>
-              <tr *ngIf="report?.byCategory?.length === 0">
-                <td colspan="2" class="text-secondary text-center py-3">Sem dados</td>
-              </tr>
-            </tbody>
-          </table>
+    <ng-container *ngIf="report$ | async as report; else loadingReportTpl">
+      <ng-container *ngIf="!report || report?.transactions?.length === 0; else reportData">
+        <div class="col-12">
+          <div class="glass-card p-3">
+            <div class="empty-state">
+              <div>Nenhum dado encontrado para este período.</div>
+              <button class="btn btn-sm btn-primary" type="button" (click)="applyFilters()">
+                Gerar relatório
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #reportData>
+        <div class="col-md-4">
+          <div class="glass-card p-3 h-100">
+            <div class="text-secondary small">Entradas</div>
+            <h4 class="fw-bold text-info">
+              {{ report.summary.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            </h4>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="glass-card p-3 h-100">
+            <div class="text-secondary small">Saídas</div>
+            <h4 class="fw-bold text-warning">
+              {{ report.summary.totalExpense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            </h4>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="glass-card p-3 h-100">
+            <div class="text-secondary small">Saldo</div>
+            <h4 class="fw-bold text-light">
+              {{ report.summary.balance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            </h4>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="glass-card p-3 h-100">
+            <h6 class="fw-semibold mb-3">Gasto por categoria</h6>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle table-sm app-table">
+                <thead>
+                  <tr class="text-secondary">
+                    <th>Categoria</th>
+                    <th class="text-end">Total</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr *ngFor="let item of report?.byCategory">
+                    <td>{{ item.categoryName || 'Categoria' }}</td>
+                    <td class="text-end fw-semibold">
+                      {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </td>
+                  </tr>
+                  <tr *ngIf="report?.byCategory?.length === 0">
+                    <td colspan="2" class="text-secondary text-center py-3">Sem dados</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="glass-card p-3 h-100">
+            <h6 class="fw-semibold mb-3">Lançamentos</h6>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle table-sm app-table">
+                <thead>
+                  <tr class="text-secondary">
+                    <th>Data</th>
+                    <th>Desc</th>
+                    <th>Tipo</th>
+                    <th>Valor</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr *ngFor="let tx of report?.transactions">
+                    <td>{{ formatDateShort(tx.date) }}</td>
+                    <td class="text-truncate" style="max-width: 200px;">{{ tx.description }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                          'bg-success-subtle text-success': tx.type === 'income',
+                          'bg-danger-subtle text-danger': tx.type === 'expense',
+                          'bg-info-subtle text-info': tx.type === 'transfer'
+                        }">{{
+                        tx.type === 'income' ? 'Receita' : tx.type === 'expense' ? 'Despesa' : 'Transferência'
+                        }}</span>
+                    </td>
+                    <td class="fw-semibold">
+                      {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </td>
+                  </tr>
+                  <tr *ngIf="report?.transactions?.length === 0">
+                    <td colspan="4" class="text-secondary text-center py-3">Nenhum lançamento no período.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </ng-container>
+
+    <ng-template #loadingReportTpl>
+      <div class="col-md-4" *ngFor="let _ of skeletonCards">
+        <div class="glass-card p-3 h-100">
+          <div class="skeleton skeleton-line w-50 mb-2"></div>
+          <div class="skeleton skeleton-line lg w-75"></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="glass-card p-3 h-100">
+          <div class="skeleton skeleton-line w-50 mb-3"></div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-sm app-table">
+              <thead>
+                <tr class="text-secondary">
+                  <th>Categoria</th>
+                  <th class="text-end">Total</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let _ of skeletonRows">
+                  <td>
+                    <div class="skeleton skeleton-line w-75"></div>
+                  </td>
+                  <td class="text-end">
+                    <div class="skeleton skeleton-line w-50 ms-auto"></div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="glass-card p-3 h-100">
+          <div class="skeleton skeleton-line w-50 mb-3"></div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-sm app-table">
+              <thead>
+                <tr class="text-secondary">
+                  <th>Data</th>
+                  <th>Desc</th>
+                  <th>Tipo</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let _ of skeletonRows">
+                  <td>
+                    <div class="skeleton skeleton-line w-75"></div>
+                  </td>
+                  <td>
+                    <div class="skeleton skeleton-line w-100"></div>
+                  </td>
+                  <td>
+                    <div class="skeleton skeleton-line w-50"></div>
+                  </td>
+                  <td>
+                    <div class="skeleton skeleton-line w-50"></div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ng-container>
+
+  <ng-container *ngIf="viewMode === 'annual'">
+    <div class="col-12">
+      <div class="glass-card p-3">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label text-secondary">Ano</label>
+            <select class="form-select glass-input" [(ngModel)]="annualYear" (change)="changeAnnualYear()">
+              <option *ngFor="let y of annualYears" [ngValue]="y">{{ y }}</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-primary w-100" type="button" (click)="changeAnnualYear()">Gerar</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="col-lg-6">
-      <div class="glass-card p-3 h-100">
-        <h6 class="fw-semibold mb-3">Lançamentos</h6>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle table-sm app-table">
-            <thead>
-              <tr class="text-secondary">
-                <th>Data</th>
-                <th>Desc</th>
-                <th>Tipo</th>
-                <th>Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let tx of report?.transactions">
-                <td>{{ formatDateShort(tx.date) }}</td>
-                <td class="text-truncate" style="max-width: 200px;">{{ tx.description }}</td>
-                <td>
-                  <span
-                    class="badge"
-                    [ngClass]="{ 'bg-success-subtle text-success': tx.type === 'income', 'bg-danger-subtle text-danger': tx.type === 'expense' }"
-                    >{{ tx.type === 'income' ? 'Receita' : 'Despesa' }}</span
-                  >
-                </td>
-                <td class="fw-semibold">
-                  {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                </td>
-              </tr>
-              <tr *ngIf="report?.transactions?.length === 0">
-                <td colspan="4" class="text-secondary text-center py-3">Nenhum lançamento no período.</td>
-              </tr>
-            </tbody>
-          </table>
+    <ng-container *ngIf="annualReport$ | async as annual; else loadingAnnualReportTpl">
+      <ng-container *ngIf="!annual?.hasData; else annualData">
+        <div class="col-12">
+          <div class="glass-card p-3">
+            <div class="empty-state">
+              <div>Nenhum dado encontrado para este período.</div>
+              <button class="btn btn-sm btn-primary" type="button" (click)="changeAnnualYear()">
+                Selecionar ano
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #annualData>
+        <div class="col-12">
+          <div class="glass-card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle table-sm app-table">
+                <thead>
+                  <tr class="text-secondary">
+                    <th>Mês</th>
+                    <th class="text-end">Entradas</th>
+                    <th class="text-end">Saídas</th>
+                    <th class="text-end">Saldo</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr *ngFor="let row of annual.months">
+                    <td>{{ monthLabels[row.month - 1] }}</td>
+                    <td class="text-end fw-semibold">
+                      {{ row.income | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </td>
+                    <td class="text-end fw-semibold">
+                      {{ row.expense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </td>
+                    <td class="text-end fw-semibold">
+                      {{ row.balance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </td>
+                  </tr>
+                </tbody>
+
+                <tfoot *ngIf="annual?.totals as sum">
+                  <tr class="report-total-row">
+                    <th scope="row">Total</th>
+                    <th class="text-end">{{ sum.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</th>
+                    <th class="text-end">{{ sum.totalExpense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</th>
+                    <th class="text-end">{{ sum.balance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </ng-container>
+
+    <ng-template #loadingAnnualReportTpl>
+      <div class="col-12">
+        <div class="glass-card p-3">
+          <div class="skeleton skeleton-line w-50 mb-3"></div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-sm app-table">
+              <thead>
+                <tr class="text-secondary">
+                  <th>Mês</th>
+                  <th class="text-end">Entradas</th>
+                  <th class="text-end">Saídas</th>
+                  <th class="text-end">Saldo</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let _ of skeletonRows">
+                  <td>
+                    <div class="skeleton skeleton-line w-50"></div>
+                  </td>
+                  <td class="text-end">
+                    <div class="skeleton skeleton-line w-50 ms-auto"></div>
+                  </td>
+                  <td class="text-end">
+                    <div class="skeleton skeleton-line w-50 ms-auto"></div>
+                  </td>
+                  <td class="text-end">
+                    <div class="skeleton skeleton-line w-50 ms-auto"></div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+    </ng-template>
   </ng-container>
 </div>

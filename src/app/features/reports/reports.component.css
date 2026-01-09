@@ -14,3 +14,49 @@
 .glass-input:focus {
   box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.2);
 }
+
+/* 1) Garante que a tabela inteira nunca vaza branco */
+:host ::ng-deep .table,
+:host ::ng-deep table {
+  background: transparent !important;
+  color: #fff;
+}
+
+/* 2) Se existir wrapper com fundo branco */
+:host ::ng-deep .table-responsive,
+:host ::ng-deep .table-responsive * {
+  background-color: transparent !important;
+}
+
+/* 3) Estilo do total (tfoot) */
+:host ::ng-deep tfoot,
+:host ::ng-deep tfoot tr,
+:host ::ng-deep tfoot th,
+:host ::ng-deep tfoot td,
+:host ::ng-deep .report-total-row,
+:host ::ng-deep .report-total-row th,
+:host ::ng-deep .report-total-row td {
+  background: rgba(18, 28, 45, 0.65) !important;
+  color: #fff !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-weight: 700 !important;
+}
+
+/* 4) Forca o tema na ultima linha do tbody */
+:host ::ng-deep tbody tr:last-child,
+:host ::ng-deep tbody tr:last-child td,
+:host ::ng-deep tbody tr:last-child th {
+  background: rgba(18, 28, 45, 0.35);
+}
+
+/* 5) Remove gap no container da tabela */
+:host ::ng-deep .table-responsive {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* 6) Evita sombra inesperada no total */
+:host ::ng-deep tfoot *,
+:host ::ng-deep tr.report-total-row * {
+  box-shadow: none !important;
+}

@@ -8,4 +8,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-width);
+  right: 0;
+  height: var(--navbar-height);
+  z-index: 1030;
+}
+
+@media (max-width: 991px) {
+  .navbar {
+    left: 0;
+  }
 }

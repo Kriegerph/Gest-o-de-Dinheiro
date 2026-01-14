@@ -12,6 +12,7 @@ import { BudgetsComponent } from './features/budgets/budgets.component';
 import { ReportsComponent } from './features/reports/reports.component';
 import { HelpComponent } from './features/help/help.component';
 import { SettingsComponent } from './features/settings/settings.component';
+import { CreditComponent } from './features/credit/credit.component';
 
 export const routes: Routes = [
   {
@@ -39,6 +40,7 @@ export const routes: Routes = [
       { path: 'categories', component: CategoriesComponent },
       { path: 'budgets', component: BudgetsComponent },
       { path: 'reports', component: ReportsComponent },
+      { path: 'credit', component: CreditComponent },
       { path: 'ajuda', component: HelpComponent },
       { path: 'settings', component: SettingsComponent },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' }

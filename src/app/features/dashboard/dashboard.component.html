@@ -1,58 +1,439 @@
-<div class="row g-3">
+<div class="row g-3 dashboard-page">
   <div class="col-12">
-    <div class="page-header d-flex align-items-center justify-content-between">
+    <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
       <div>
         <p class="text-uppercase text-primary small mb-1">Visão geral</p>
         <h3 class="fw-bold mb-0">Dashboard</h3>
       </div>
-      <div class="text-secondary">
-        Mês atual: {{ month }}/{{ year }}
-      </div>
+      <div class="text-secondary">Mês atual: {{ month }}/{{ year }}</div>
     </div>
   </div>
 
-  <div class="col-12" *ngIf="(hasTransactions$ | async) === false">
-    <div class="glass-card p-3">
-      <div class="empty-state">
-        <div>Nenhum dado encontrado para este período.</div>
+  <ng-container *ngIf="view$ | async as view; else dashboardLoadingTpl">
+    <div class="col-12">
+      <div class="kpi-grid">
+        <div class="glass-card kpi-card kpi-center">
+          <div class="kpi-label">Saldo total</div>
+          <div class="kpi-value">{{ view.kpis.totalBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+          <div class="kpi-sub">Somatório das contas</div>
+        </div>
+        <div class="glass-card kpi-card kpi-center">
+          <div class="kpi-label">Receitas do mês</div>
+          <div class="kpi-value text-success">{{ view.kpis.income | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+          <div class="kpi-sub">Entradas confirmadas</div>
+        </div>
+        <div class="glass-card kpi-card kpi-center">
+          <div class="kpi-label">Despesas do mês</div>
+          <div class="kpi-value text-danger">{{ view.kpis.expense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+          <div class="kpi-sub">Saídas confirmadas</div>
+        </div>
+        <div class="glass-card kpi-card kpi-center">
+          <div class="kpi-label">COMPROMETIMENTO DA RENDA</div>
+          <div class="kpi-value">
+            {{ (view.kpis.incomeCommitmentPercent | number:'1.0-0') + '%' }}
+          </div>
+          <div class="kpi-sub">Despesas / Receitas (mês)</div>
+        </div>
+        <div class="glass-card kpi-card kpi-center">
+          <div class="kpi-label">Total gasto no cartão</div>
+          <div class="kpi-value">
+            {{ view.kpis.creditTotal === null ? '-' : (view.kpis.creditTotal | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
+          </div>
+          <div class="kpi-sub">Parcelas com vencimento no mês</div>
+        </div>
+        <div class="glass-card kpi-card kpi-center">
+          <div class="kpi-label">Total pago no cartão</div>
+          <div class="kpi-value">
+            {{ view.kpis.creditPaid === null ? '-' : (view.kpis.creditPaid | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
+          </div>
+          <div class="kpi-sub">Pagamentos feitos neste mês</div>
+          <div class="kpi-sub">
+            Fatura em aberto do mês: {{ view.kpis.billOpen === null ? '-' : (view.kpis.billOpen | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-
-  <ng-container *ngIf="summary$ | async as summary; else summaryLoadingTpl">
-    <div class="col-md-4">
-      <div class="glass-card p-3 h-100">
-        <div class="text-secondary small">Saldo</div>
-        <h2 class="fw-bold text-light">
-          {{ totalBalance$ | async | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-        </h2>
-        <p class="text-success small">Atualizado em tempo real</p>
+    <div class="col-12">
+      <div class="section-header">
+        <div>
+          <p class="text-uppercase text-primary small mb-1">Alertas</p>
+          <h5 class="mb-0 fw-semibold">Alertas inteligentes</h5>
+        </div>
+        <span class="text-secondary small">Insights do mês</span>
       </div>
     </div>
 
-    <div class="col-md-4">
-      <div class="glass-card p-3 h-100">
-        <div class="text-secondary small">Entradas</div>
-        <h3 class="fw-bold text-info">
-          {{ summary.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-        </h3>
-        <p class="small text-secondary">Receitas do mês</p>
+    <div class="col-12">
+      <div class="alerts-grid" *ngIf="view.alerts.length > 0; else emptyAlertsTpl">
+        <div class="alert-card" *ngFor="let alert of view.alerts" [class.tone-warning]="alert.tone === 'warning'"
+          [class.tone-danger]="alert.tone === 'danger'" [class.tone-info]="alert.tone === 'info'"
+          [class.tone-success]="alert.tone === 'success'">
+          <div class="alert-title">{{ alert.title }}</div>
+          <div class="alert-detail" *ngIf="alert.detail">{{ alert.detail }}</div>
+        </div>
+      </div>
+      <ng-template #emptyAlertsTpl>
+        <div class="glass-card p-3 text-secondary">Nenhum alerta relevante no momento.</div>
+      </ng-template>
+    </div>
+
+    <div class="col-12">
+      <div class="section-header">
+        <div>
+          <p class="text-uppercase text-primary small mb-1">Graficos</p>
+          <h5 class="mb-0 fw-semibold">Tendências e distribuições</h5>
+        </div>
+        <span class="text-secondary small">Últimos movimentos</span>
       </div>
     </div>
 
-    <div class="col-md-4">
+        <div class="col-lg-7">
+      <div class="glass-card chart-card h-100">
+        <div class="chart-header">
+          <h6 class="fw-semibold mb-0">Evolução diária do saldo</h6>
+          <span class="text-secondary small">Cumulativo do mês</span>
+        </div>
+        <div class="chart-wrap">
+          <ng-container *ngIf="!view.charts.dailyBalance.empty; else emptyLineTpl">
+            <svg class="chart-svg" [attr.viewBox]="view.charts.dailyBalance.viewBox" [attr.height]="view.charts.dailyBalance.height">
+              <g class="chart-grid">
+                <line *ngFor="let gridY of view.charts.dailyBalance.grid"
+                  [attr.x1]="0" [attr.x2]="view.charts.dailyBalance.width"
+                  [attr.y1]="gridY" [attr.y2]="gridY"></line>
+              </g>
+              <path class="chart-line" [attr.d]="view.charts.dailyBalance.path"></path>
+              <g class="chart-labels">
+                <text *ngFor="let label of view.charts.dailyBalance.labels"
+                  [attr.x]="label.x" [attr.y]="view.charts.dailyBalance.labelY" text-anchor="middle">
+                  {{ label.text }}
+                </text>
+              </g>
+            </svg>
+          </ng-container>
+          <ng-template #emptyLineTpl>
+            <div class="text-secondary small empty-state">Sem dados no período</div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="glass-card chart-card h-100">
+        <div class="card-header-row">
+          <h6 class="fw-semibold mb-0">Distribuição por categoria</h6>
+          <span class="text-secondary small">Despesas do mês</span>
+        </div>
+        <ng-container *ngIf="!view.charts.categoryDonut.empty; else emptyDonutTpl">
+          <div class="donut-layout">
+            <div class="donut-chart" [style.background]="view.charts.categoryDonut.gradient"></div>
+            <div class="donut-meta">
+              <div class="donut-total">{{ view.charts.categoryDonut.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+              <div class="text-secondary small">Total gasto</div>
+            </div>
+          </div>
+          <div class="donut-legend">
+            <div class="donut-legend-row" *ngFor="let slice of view.charts.categoryDonut.slices">
+              <span class="legend-dot" [style.background]="slice.color"></span>
+              <span class="legend-label">{{ slice.label }}</span>
+              <span class="legend-value">{{ slice.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #emptyDonutTpl>
+          <div class="text-secondary small empty-state">Sem dados no período</div>
+        </ng-template>
+      </div>
+    </div>
+
+        <div class="col-12">
+      <div class="section-header">
+        <div>
+          <p class="text-uppercase text-primary small mb-1">Progresso do mês</p>
+          <h5 class="mb-0 fw-semibold">Progresso do mês</h5>
+        </div>
+        <span class="text-secondary small">Semana a semana</span>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card chart-card h-100">
+        <div class="chart-header">
+          <h6 class="fw-semibold mb-0">Gastos por semana</h6>
+          <span class="text-secondary small">Semanas do mês</span>
+        </div>
+        <ng-container *ngIf="view.monthProgress.totalExpense > 0; else emptyWeekTpl">
+          <div class="week-list">
+            <div class="week-row" *ngFor="let week of view.monthProgress.weeklySpend">
+              <div class="week-label">{{ week.label }}</div>
+              <div class="week-bar">
+                <span class="week-fill" [style.width.%]="week.percent"></span>
+              </div>
+              <div class="week-value">{{ week.value | currency:'BRL':'symbol':'1.0-0':'pt-BR' }}</div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #emptyWeekTpl>
+          <div class="text-secondary small empty-state">Sem dados no período</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card chart-card h-100">
+        <div class="chart-header">
+          <h6 class="fw-semibold mb-0">Top categorias do mês</h6>
+          <span class="text-secondary small">Concentração atual</span>
+        </div>
+        <ng-container *ngIf="view.monthProgress.topCategories.length > 0; else emptyProgressTopTpl">
+          <div class="progress-category-list">
+            <div class="progress-category-row" *ngFor="let item of view.monthProgress.topCategories">
+              <div class="progress-category-name">{{ item.name }}</div>
+              <div class="progress-category-bar">
+                <span class="progress-category-fill" [style.width.%]="item.percent" [style.background]="item.color"></span>
+              </div>
+              <div class="progress-category-value">{{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #emptyProgressTopTpl>
+          <div class="text-secondary small empty-state">Sem despesas no mês</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card chart-card h-100">
+        <div class="chart-header">
+          <h6 class="fw-semibold mb-0">Projeção do mês</h6>
+          <span class="text-secondary small">Média diária</span>
+        </div>
+        <div class="forecast-list">
+          <div class="forecast-row">
+            <span class="text-secondary">Média diária</span>
+            <span>
+              {{ view.monthProgress.forecast.avgPerDay === null ? '-' : (view.monthProgress.forecast.avgPerDay | currency:'BRL':'symbol':'1.0-0':'pt-BR') }}
+            </span>
+          </div>
+          <div class="forecast-row">
+            <span class="text-secondary">Projeção total</span>
+            <span>
+              {{ view.monthProgress.forecast.projectedTotal === null ? '-' : (view.monthProgress.forecast.projectedTotal | currency:'BRL':'symbol':'1.0-0':'pt-BR') }}
+            </span>
+          </div>
+          <div class="forecast-row">
+            <span class="text-secondary">Dias restantes</span>
+            <span>{{ view.monthProgress.forecast.remainingDays }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
       <div class="glass-card p-3 h-100">
-        <div class="text-secondary small">Saídas</div>
-        <h3 class="fw-bold text-warning">
-          {{ summary.totalExpense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-        </h3>
-        <p class="small text-secondary">Despesas do mês</p>
+        <div class="card-header-row">
+          <h6 class="fw-semibold mb-0">Top categorias do mês</h6>
+          <span class="text-secondary small">Concentração de gastos</span>
+        </div>
+        <ng-container *ngIf="view.charts.topCategories.length > 0; else emptyTopTpl">
+          <div class="category-list">
+            <div class="category-row" *ngFor="let item of view.charts.topCategories">
+              <div class="category-name">{{ item.name }}</div>
+              <div class="category-bar">
+                <span class="category-fill" [style.width.%]="item.percent" [style.background]="item.color"></span>
+              </div>
+              <div class="category-value">{{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #emptyTopTpl>
+          <div class="text-secondary small empty-state">Sem despesas no mês</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card p-3 h-100">
+        <div class="card-header-row">
+          <h6 class="fw-semibold mb-0">Cartões de crédito</h6>
+          <span class="text-secondary small">Limite usado e disponível</span>
+        </div>
+        <ng-container *ngIf="view.lists.creditCards.length > 0; else emptyCardsTpl">
+          <div class="credit-list">
+            <div class="credit-row" *ngFor="let card of view.lists.creditCards">
+              <div class="credit-title">{{ card.name }}</div>
+              <div class="credit-values">
+                <span class="text-secondary">Usado:</span>
+                <span>{{ card.used | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+              </div>
+              <div class="credit-values">
+                <span class="text-secondary">Limite:</span>
+                <span>{{ card.limit === null ? '�' : (card.limit | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}</span>
+              </div>
+              <div class="credit-progress">
+                <div class="bar-track">
+                  <div class="bar-fill" [style.width.%]="card.percent ?? 0"></div>
+                </div>
+                <small class="text-secondary">
+                  Disponível: {{ card.available === null ? '�' : (card.available | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
+                </small>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #emptyCardsTpl>
+          <div class="text-secondary small empty-state">Sem cartões cadastrados</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="section-header">
+        <div>
+          <p class="text-uppercase text-primary small mb-1">Listas úteis</p>
+          <h5 class="mb-0 fw-semibold">Histórico e vencimentos</h5>
+        </div>
+        <span class="text-secondary small">Ações rápidas</span>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="glass-card p-3 h-100">
+        <div class="card-header-row">
+          <h6 class="fw-semibold mb-0">Últimos lançamentos</h6>
+          <a class="btn btn-sm btn-outline-light" routerLink="/app/transactions">Ver todos</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Conta</th>
+                <th>Categoria</th>
+                <th class="text-end">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tx of view.lists.recentTransactions">
+                <td>{{ formatDate(tx.date) }}</td>
+                <td class="text-truncate" style="max-width: 180px;">{{ tx.description }}</td>
+                <td>{{ tx.accountName }}</td>
+                <td>{{ tx.categoryName }}</td>
+                <td class="text-end fw-semibold" [class.text-success]="tx.type === 'income'"
+                  [class.text-danger]="tx.type === 'expense'">
+                  {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </td>
+              </tr>
+              <tr *ngIf="view.lists.recentTransactions.length === 0">
+                <td colspan="5" class="text-center text-secondary py-3">Sem lançamentos recentes.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="glass-card p-3 h-100">
+        <div class="card-header-row">
+          <h6 class="fw-semibold mb-0">Próximos vencimentos</h6>
+          <span class="text-secondary small">Próximos 15 dias</span>
+        </div>
+        <ng-container *ngIf="view.lists.upcomingInstallments.length > 0; else emptyUpcomingTpl">
+          <div class="upcoming-list">
+            <div class="upcoming-row" *ngFor="let item of view.lists.upcomingInstallments">
+              <div>
+                <div class="fw-semibold">{{ formatDate(item.dueDate) }}</div>
+                <div class="text-secondary small">{{ item.cardName }}</div>
+              </div>
+              <div class="text-end">
+                <div class="fw-semibold">{{ item.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+                <div class="small" [class.text-success]="item.paid" [class.text-warning]="!item.paid">
+                  {{ item.paid ? 'Pago' : 'Pendente' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #emptyUpcomingTpl>
+          <div class="text-secondary small empty-state">Sem vencimentos próximos.</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card p-3 h-100">
+        <div class="card-header-row">
+          <h6 class="fw-semibold mb-0">Metas em andamento</h6>
+          <a class="btn btn-sm btn-outline-light" routerLink="/app/budgets">Ver metas</a>
+        </div>
+        <ng-container *ngIf="view.lists.budgets.length > 0; else emptyBudgetsTpl">
+          <div class="budget-list">
+            <div class="budget-row" *ngFor="let budget of view.lists.budgets">
+              <div class="budget-title">{{ budget.categoryName }}</div>
+              <div class="budget-values">
+                <span class="text-secondary">Limite:</span>
+                <span>{{ budget.limit | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+              </div>
+              <div class="budget-values">
+                <span class="text-secondary">Gasto:</span>
+                <span>{{ budget.spent | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+              </div>
+              <div class="budget-progress">
+                <div class="bar-track">
+                  <div class="bar-fill" [style.width.%]="budget.percent" [class.warning]="budget.percent >= 80"
+                    [class.danger]="budget.percent >= 100"></div>
+                </div>
+                <small class="text-secondary">Restante: {{ budget.remaining | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</small>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #emptyBudgetsTpl>
+          <div class="text-secondary small empty-state">Nenhuma meta cadastrada.</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card p-3 h-100">
+        <div class="card-header-row">
+          <h6 class="fw-semibold mb-0">Resumo por conta</h6>
+          <a class="btn btn-sm btn-outline-light" routerLink="/app/accounts">Ver contas</a>
+        </div>
+        <ng-container *ngIf="view.accounts.length > 0; else emptyAccountsTpl">
+          <div class="accounts-grid">
+            <div class="account-card" *ngFor="let account of view.accounts">
+              <div class="fw-semibold">{{ account.name }}</div>
+              <div class="account-balance">{{ account.currentBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+              <div class="account-meta">
+                <span>Entradas: {{ account.income | currency:'BRL':'symbol':'1.0-0':'pt-BR' }}</span>
+                <span>Saidas: {{ account.expense | currency:'BRL':'symbol':'1.0-0':'pt-BR' }}</span>
+              </div>
+              <div class="account-diff" *ngIf="account.diffPercent !== null">
+                <span [class.text-success]="account.diffPercent >= 0" [class.text-danger]="account.diffPercent < 0">
+                  {{ account.diffPercent >= 0 ? '+' : '' }}{{ account.diffPercent | number:'1.0-0' }}%
+                </span>
+                <span class="text-secondary">vs mês anterior</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #emptyAccountsTpl>
+          <div class="text-secondary small empty-state">Nenhuma conta cadastrada.</div>
+        </ng-template>
       </div>
     </div>
   </ng-container>
 
-  <ng-template #summaryLoadingTpl>
-    <div class="col-md-4" *ngFor="let _ of skeletonCards">
+  <ng-template #dashboardLoadingTpl>
+    <div class="col-12">
+      <div class="glass-card p-3">
+        <div class="skeleton skeleton-line w-50 mb-2"></div>
+        <div class="skeleton skeleton-line w-75"></div>
+      </div>
+    </div>
+    <div class="col-12" *ngFor="let _ of skeletonCards">
       <div class="glass-card p-3 h-100">
         <div class="skeleton skeleton-line w-50 mb-2"></div>
         <div class="skeleton skeleton-line lg w-75"></div>
@@ -60,355 +441,5 @@
       </div>
     </div>
   </ng-template>
-
-  <div class="col-lg-6">
-    <ng-container *ngIf="balancesByAccount$ | async as balances; else balancesLoadingTpl">
-      <div class="glass-card p-3 h-100">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h6 class="fw-semibold mb-0">Saldo por conta</h6>
-          <a class="btn btn-sm btn-outline-light" routerLink="/app/accounts">Ver todas</a>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle table-sm app-table">
-            <thead>
-              <tr class="text-secondary">
-                <th>Conta</th>
-                <th class="text-end">Saldo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let account of balances">
-                <td>{{ account.name }}</td>
-                <td class="text-end fw-semibold">
-                  {{ account.currentBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                </td>
-              </tr>
-              <tr *ngIf="balances.length === 0">
-                <td colspan="2" class="text-center text-secondary py-3">Sem contas cadastradas.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </ng-container>
-
-    <ng-template #balancesLoadingTpl>
-      <div class="glass-card p-3 h-100">
-        <div class="skeleton skeleton-line w-50 mb-3"></div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle table-sm app-table">
-            <thead>
-              <tr class="text-secondary">
-                <th>Conta</th>
-                <th class="text-end">Saldo</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr *ngFor="let _ of skeletonRows">
-                <td>
-                  <div class="skeleton skeleton-line w-75"></div>
-                </td>
-                <td class="text-end">
-                  <div class="skeleton skeleton-line w-50 ms-auto"></div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </ng-template>
-  </div>
-
-  <div class="col-lg-6">
-    <ng-container *ngIf="topCategories$ | async as categories; else categoriesLoadingTpl">
-      <div class="glass-card p-3 h-100">
-        <div class="card-header-row">
-          <h5 class="card-title m-0">Distribuição de gastos</h5>
-          <button
-            type="button"
-            class="btn btn-outline-light btn-sm card-action"
-            routerLink="/app/transactions"
-          >
-            Ver todas
-          </button>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle table-sm app-table">
-            <thead>
-              <tr class="text-secondary">
-                <th>Categoria</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of categories">
-                <td>{{ item.categoryName }}</td>
-                <td class="text-end fw-semibold">
-                  {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                </td>
-              </tr>
-              <tr *ngIf="categories.length === 0">
-                <td colspan="2" class="text-center text-secondary py-3">Sem dados.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </ng-container>
-
-    <ng-template #categoriesLoadingTpl>
-      <div class="glass-card p-3 h-100">
-        <div class="skeleton skeleton-line w-50 mb-3"></div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle table-sm app-table">
-            <thead>
-              <tr class="text-secondary">
-                <th>Categoria</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let _ of skeletonRows">
-                <td>
-                  <div class="skeleton skeleton-line w-75"></div>
-                </td>
-                <td class="text-end">
-                  <div class="skeleton skeleton-line w-50 ms-auto"></div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </ng-template>
-  </div>
-
-  <ng-container *ngIf="hasTransactions$ | async">
-    <div class="col-12">
-      <div class="d-flex align-items-center justify-content-between">
-        <div>
-          <p class="text-uppercase text-primary small mb-1">Insights</p>
-          <h5 class="mb-0 fw-semibold">Resumo inteligente</h5>
-        </div>
-        <span class="text-secondary small">Comparações do período</span>
-      </div>
-    </div>
-
-    <ng-container *ngIf="insights$ | async as insights">
-      <div class="col-md-6 col-lg-3">
-        <div class="glass-card p-3 h-100">
-          <div class="text-secondary small mb-2">Comparação mensal</div>
-          <ng-container *ngIf="insights.comparison.hasHistory; else noHistory">
-            <div class="fw-semibold">
-              Você gastou {{ insights.comparison.percent | number:'1.0-0' }}% a
-              {{ insights.comparison.direction }} em relação ao mês anterior.
-            </div>
-          </ng-container>
-
-          <ng-template #noHistory>
-            <div class="text-secondary">Sem histórico suficiente para comparação.</div>
-          </ng-template>
-        </div>
-      </div>
-
-      <div class="col-md-6 col-lg-3">
-        <div class="glass-card p-3 h-100">
-          <div class="text-secondary small mb-2">Maior despesa</div>
-          <ng-container *ngIf="insights.largestExpense as largest; else noLargest">
-            <div class="fw-semibold">
-              {{ largest.description }}
-              ({{ largest.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }})
-            </div>
-            <div class="text-secondary small">em {{ formatDate(largest.date) }}</div>
-          </ng-container>
-
-          <ng-template #noLargest>
-            <div class="text-secondary">Sem despesas no período.</div>
-          </ng-template>
-        </div>
-      </div>
-
-      <div class="col-md-6 col-lg-3">
-        <div class="glass-card p-3 h-100">
-          <div class="text-secondary small mb-2">Categoria destaque</div>
-          <ng-container *ngIf="insights.topCategory as top; else noTop">
-            <div class="fw-semibold">
-              {{ top.categoryName }}
-              ({{ top.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }})
-            </div>
-          </ng-container>
-
-          <ng-template #noTop>
-            <div class="text-secondary">Sem despesas no período.</div>
-          </ng-template>
-        </div>
-      </div>
-    </ng-container>
-
-    <div class="col-md-6 col-lg-3">
-      <div class="glass-card p-3 h-100">
-        <div class="text-secondary small mb-2">Média de despesas</div>
-        <ng-container *ngIf="averageComparison$ | async as average">
-          <ng-container *ngIf="average.ready; else averageFallbackTpl">
-            <div class="fw-semibold">
-              Sua média (ultimos {{ average.months }} meses):
-              {{ average.average | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-            </div>
-            <div class="text-secondary small">
-              Este mês: {{ average.current | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-              ({{ average.diffPercent >= 0 ? '+' : '' }}{{ average.diffPercent | number:'1.0-0' }}%)
-            </div>
-          </ng-container>
-
-          <ng-template #averageFallbackTpl>
-            <div class="muted">{{ averageMessage }}</div>
-          </ng-template>
-        </ng-container>
-      </div>
-    </div>
-  </ng-container>
-
-  <div class="col-12">
-    <ng-container *ngIf="largestExpenseState$ | async as largestState">
-      <ng-container *ngIf="largestState.ready; else largestLoadingTpl">
-        <div class="glass-card p-3 h-100">
-          <h6 class="fw-semibold mb-3">Maior despesa do mês</h6>
-          <div *ngIf="largestState.value; else noExpense">
-            <div class="d-flex align-items-center justify-content-between">
-              <div>
-                <div class="fw-semibold">{{ largestState.value.description }}</div>
-                <div class="text-secondary small">
-                  {{ largestState.value.categoryName }} - {{ formatDate(largestState.value.date) }}
-                </div>
-              </div>
-
-              <div class="fw-bold text-warning">
-                {{ largestState.value.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-              </div>
-            </div>
-          </div>
-
-          <ng-template #noExpense>
-            <div class="text-secondary">Nenhuma despesa no mês.</div>
-          </ng-template>
-        </div>
-      </ng-container>
-    </ng-container>
-
-    <ng-template #largestLoadingTpl>
-      <div class="glass-card p-3 h-100">
-        <div class="skeleton skeleton-line w-50 mb-3"></div>
-        <div class="skeleton skeleton-line w-100 mb-2"></div>
-        <div class="skeleton skeleton-line w-50"></div>
-      </div>
-    </ng-template>
-  </div>
-
-  <div class="col-12">
-    <ng-container *ngIf="recent$ | async as recent; else recentLoadingTpl">
-      <div class="glass-card p-3">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h5 class="mb-0 fw-semibold">Últimas transações</h5>
-          <span class="badge text-light">Atualizado</span>
-        </div>
-
-        <div class="table-responsive">
-          <table class="table table-hover align-middle table-sm app-table">
-            <thead>
-              <tr class="text-secondary">
-                <th>Data</th>
-                <th>Descrição</th>
-                <th>Tipo</th>
-                <th class="text-end">Valor</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr *ngFor="let tx of recent; trackBy: trackById">
-                <td>{{ formatDate(tx.date) }}</td>
-                <td class="text-truncate" style="max-width: 220px;">{{ tx.description }}</td>
-                <td>
-                  <span class="badge" [ngClass]="{
-                      'bg-success-subtle text-success': tx.type === 'income',
-                      'bg-danger-subtle text-danger': tx.type === 'expense',
-                      'bg-info-subtle text-info': tx.type === 'transfer'
-                    }">
-                    {{ tx.type === 'income' ? 'Receita' : tx.type === 'expense' ? 'Despesa' : 'Transferencia' }}
-                  </span>
-                </td>
-
-                <td class="text-end fw-semibold">
-                  {{ tx.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                </td>
-              </tr>
-
-              <tr *ngIf="recent.length === 0">
-                <td colspan="4" class="text-center text-secondary py-3">Sem transações ainda.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </ng-container>
-
-    <ng-template #recentLoadingTpl>
-      <div class="glass-card p-3">
-        <div class="skeleton skeleton-line w-50 mb-3"></div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle table-sm app-table">
-            <thead>
-              <tr class="text-secondary">
-                <th>Data</th>
-                <th>Descrição</th>
-                <th>Tipo</th>
-                <th class="text-end">Valor</th>
-              </tr>
-            </thead>
-            
-            <tbody>
-              <tr *ngFor="let _ of skeletonRows">
-                <td>
-                  <div class="skeleton skeleton-line w-75"></div>
-                </td>
-                <td>
-                  <div class="skeleton skeleton-line w-100"></div>
-                </td>
-                <td>
-                  <div class="skeleton skeleton-line w-50"></div>
-                </td>
-                <td class="text-end">
-                  <div class="skeleton skeleton-line w-50 ms-auto"></div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </ng-template>
-  </div>
-
-  <div class="col-12">
-    <div class="d-flex align-items-center justify-content-between">
-      <div>
-        <p class="text-uppercase text-primary small mb-1">Indicadores</p>
-        <h5 class="mb-0 fw-semibold">Gráficos do mês</h5>
-      </div>
-      <span class="text-secondary small">Resumo visual</span>
-    </div>
-  </div>
-
-  <div class="col-12">
-    <ng-container *ngIf="charts$ | async as charts; else chartsLoadingTpl">
-      <app-dashboard-charts [topCategorias]="charts.topCategories" [seriesDiariaEntradas]="charts.dailyIncome"
-        [seriesDiariaSaidas]="charts.dailyExpense" [contasSaldos]="charts.accounts"></app-dashboard-charts>
-    </ng-container>
-
-    <ng-template #chartsLoadingTpl>
-      <div class="glass-card p-3">
-        <div class="skeleton skeleton-line w-50 mb-3"></div>
-        <div class="skeleton" style="height: 220px;"></div>
-      </div>
-    </ng-template>
-  </div>
 </div>
+

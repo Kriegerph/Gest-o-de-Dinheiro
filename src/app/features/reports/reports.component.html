@@ -5,45 +5,70 @@
       <h3 class="fw-bold mb-0">Relatórios</h3>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-      <div class="btn-group" role="group" aria-label="Modo de relatorio">
-        <button class="btn btn-outline-light" [class.active]="viewMode === 'period'" type="button"
-          (click)="setViewMode('period')">
-          Período
+      <div class="btn-group" role="group" aria-label="Tipo de relatorio">
+        <button class="btn btn-outline-light" [class.active]="viewMode === 'default'" type="button"
+          (click)="setViewMode('default')">
+          Relatório
         </button>
-
-        <button class="btn btn-outline-light" [class.active]="viewMode === 'annual'" type="button"
-          (click)="setViewMode('annual')">
-          Relatório anual
+        <button class="btn btn-outline-light" [class.active]="viewMode === 'credit'" type="button"
+          (click)="setViewMode('credit')">
+          Cartões
         </button>
       </div>
 
-      <ng-container *ngIf="viewMode === 'period'">
-        <button class="btn btn-outline-light" (click)="exportCsv()" [disabled]="exportingCsv">
-          <span *ngIf="exportingCsv" class="spinner-border spinner-border-sm me-2"></span>
-          {{ exportingCsv ? 'Exportando...' : 'Exportar CSV' }}
-        </button>
+      <ng-container *ngIf="viewMode === 'default'">
+        <div class="btn-group" role="group" aria-label="Modo de relatorio">
+          <button class="btn btn-outline-light" [class.active]="periodMode === 'period'" type="button"
+            (click)="setPeriodMode('period')">
+            Período
+          </button>
 
-        <button class="btn btn-outline-light" (click)="exportXlsx()" [disabled]="exportingXlsx">
-          <span *ngIf="exportingXlsx" class="spinner-border spinner-border-sm me-2"></span>
-          {{ exportingXlsx ? 'Exportando...' : 'Exportar Excel' }}
-        </button>
+          <button class="btn btn-outline-light" [class.active]="periodMode === 'annual'" type="button"
+            (click)="setPeriodMode('annual')">
+            Relatório anual
+          </button>
+        </div>
+
+        <ng-container *ngIf="periodMode === 'period'">
+          <button class="btn btn-outline-light" (click)="exportCsv()" [disabled]="exportingCsv">
+            <span *ngIf="exportingCsv" class="spinner-border spinner-border-sm me-2"></span>
+            {{ exportingCsv ? 'Exportando...' : 'Exportar CSV' }}
+          </button>
+
+          <button class="btn btn-outline-light" (click)="exportXlsx()" [disabled]="exportingXlsx">
+            <span *ngIf="exportingXlsx" class="spinner-border spinner-border-sm me-2"></span>
+            {{ exportingXlsx ? 'Exportando...' : 'Exportar Excel' }}
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="periodMode === 'annual'">
+          <button class="btn btn-outline-light" (click)="exportAnnualCsv()" [disabled]="exportingAnnualCsv">
+            <span *ngIf="exportingAnnualCsv" class="spinner-border spinner-border-sm me-2"></span>
+            {{ exportingAnnualCsv ? 'Exportando...' : 'Exportar CSV' }}
+          </button>
+
+          <button class="btn btn-outline-light" (click)="exportAnnualXlsx()" [disabled]="exportingAnnualXlsx">
+            <span *ngIf="exportingAnnualXlsx" class="spinner-border spinner-border-sm me-2"></span>
+            {{ exportingAnnualXlsx ? 'Exportando...' : 'Exportar Excel' }}
+          </button>
+        </ng-container>
       </ng-container>
 
-      <ng-container *ngIf="viewMode === 'annual'">
-        <button class="btn btn-outline-light" (click)="exportAnnualCsv()" [disabled]="exportingAnnualCsv">
-          <span *ngIf="exportingAnnualCsv" class="spinner-border spinner-border-sm me-2"></span>
-          {{ exportingAnnualCsv ? 'Exportando...' : 'Exportar CSV' }}
+      <ng-container *ngIf="viewMode === 'credit'">
+        <button class="btn btn-outline-light" (click)="exportCreditCsv()" [disabled]="exportingCreditCsv">
+          <span *ngIf="exportingCreditCsv" class="spinner-border spinner-border-sm me-2"></span>
+          {{ exportingCreditCsv ? 'Exportando...' : 'Exportar CSV (Cartão)' }}
         </button>
 
-        <button class="btn btn-outline-light" (click)="exportAnnualXlsx()" [disabled]="exportingAnnualXlsx">
-          <span *ngIf="exportingAnnualXlsx" class="spinner-border spinner-border-sm me-2"></span>
-          {{ exportingAnnualXlsx ? 'Exportando...' : 'Exportar Excel' }}
+        <button class="btn btn-outline-light" (click)="exportCreditExcel()" [disabled]="exportingCreditXlsx">
+          <span *ngIf="exportingCreditXlsx" class="spinner-border spinner-border-sm me-2"></span>
+          {{ exportingCreditXlsx ? 'Exportando...' : 'Exportar Excel (Cartão)' }}
         </button>
       </ng-container>
     </div>
   </div>
 
-  <ng-container *ngIf="viewMode === 'period'">
+  <ng-container *ngIf="viewMode === 'default' && periodMode === 'period'">
     <div class="col-12">
       <div class="glass-card p-3">
         <form [formGroup]="form" class="row g-3 align-items-end" (ngSubmit)="applyFilters()">
@@ -240,9 +265,275 @@
         </div>
       </div>
     </ng-template>
+
   </ng-container>
 
-  <ng-container *ngIf="viewMode === 'annual'">
+  <div *ngIf="viewMode === 'credit'" id="credit-report-print" class="col-12">
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="glass-card p-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <p class="text-uppercase text-primary small mb-1">Cartão de crédito</p>
+              <h6 class="fw-semibold mb-0">Relatórios de cartão</h6>
+            </div>
+          </div>
+          <form [formGroup]="creditForm" class="row g-3 align-items-end mt-1" (ngSubmit)="applyCreditFilters()">
+            <div class="col-md-3">
+              <label class="form-label text-secondary">Mês</label>
+              <select class="form-select glass-input" formControlName="month">
+                <option *ngFor="let label of monthLabels; let idx = index" [ngValue]="idx + 1">
+                  {{ label }}
+                </option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-secondary">Ano</label>
+              <select class="form-select glass-input" formControlName="year">
+                <option *ngFor="let y of creditYears" [ngValue]="y">{{ y }}</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-secondary">Cartão</label>
+              <select class="form-select glass-input" formControlName="cardId">
+                <option value="all">Todos</option>
+                <option *ngFor="let card of creditCards$ | async" [value]="card.id">
+                  {{ card.name }}
+                </option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-secondary">Status</label>
+              <select class="form-select glass-input" formControlName="status">
+                <option value="all">Todos</option>
+                <option value="paid">Pagos</option>
+                <option value="pending">Pendentes</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-secondary">Visão</label>
+              <select class="form-select glass-input" formControlName="view">
+                <option value="due">Fatura (vencimento)</option>
+                <option value="payment">Pagamentos</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-primary w-100" type="submit">Aplicar filtros</button>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-outline-light w-100" type="button" (click)="resetCreditFilters()">
+                Limpar filtros
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <ng-container *ngIf="creditReport$ | async as creditReport">
+        <div class="col-12">
+          <div class="section-header">
+            <div>
+              <p class="text-uppercase text-primary small mb-1">Cartão de crédito</p>
+              <h5 class="mb-0 fw-semibold">Resumo do cartão</h5>
+            </div>
+            <span class="text-secondary small">Período: {{ creditReport.periodLabel }}</span>
+          </div>
+        </div>
+
+        <ng-container *ngIf="creditReport.hasData; else emptyCreditTpl">
+          <div class="col-md-4">
+            <div class="glass-card p-3 h-100">
+              <div class="text-secondary small">Total gasto no período</div>
+              <h4 class="fw-bold text-light">
+                {{ creditReport.summary.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </h4>
+              <div class="text-secondary small">
+                Parcelas: {{ creditReport.summary.countTotal }} (pagas {{ creditReport.summary.countPaid }},
+                pendentes {{ creditReport.summary.countPending }})
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="glass-card p-3 h-100">
+              <div class="text-secondary small">Total pago no período</div>
+              <h4 class="fw-bold text-success">
+                {{ creditReport.summary.paid | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </h4>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="glass-card p-3 h-100">
+              <div class="text-secondary small">Total pendente do período</div>
+              <h4 class="fw-bold text-warning">
+                {{ creditReport.summary.pending | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </h4>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="glass-card p-3">
+              <h6 class="fw-semibold mb-3">Resumo por cartão</h6>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle table-sm app-table">
+                  <thead>
+                    <tr class="text-secondary">
+                      <th>Cartão</th>
+                      <th class="text-end">Total</th>
+                      <th class="text-end">Pago</th>
+                      <th class="text-end">Pendente</th>
+                      <th class="text-end">Parcelas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of creditReport.cardSummaries">
+                      <td>{{ item.cardName }}</td>
+                      <td class="text-end fw-semibold">
+                        {{ item.summary.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="text-end fw-semibold text-success">
+                        {{ item.summary.paid | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="text-end fw-semibold text-warning">
+                        {{ item.summary.pending | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="text-end text-secondary">
+                        {{ item.summary.countTotal }} / {{ item.summary.countPaid }} / {{ item.summary.countPending }}
+                      </td>
+                    </tr>
+                    <tr *ngIf="creditReport.cardSummaries.length === 0">
+                      <td colspan="5" class="text-secondary text-center py-3">Sem dados</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="glass-card p-3 h-100">
+              <h6 class="fw-semibold mb-3">Top categorias do cartão</h6>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle table-sm app-table">
+                  <thead>
+                    <tr class="text-secondary">
+                      <th>Categoria</th>
+                      <th class="text-end">Total</th>
+                      <th class="text-end">%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of creditReport.topCategories">
+                      <td>{{ item.categoryName }}</td>
+                      <td class="text-end fw-semibold">
+                        {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="text-end text-secondary">{{ item.percent | number:'1.0-0' }}%</td>
+                    </tr>
+                    <tr *ngIf="creditReport.topCategories.length === 0">
+                      <td colspan="3" class="text-secondary text-center py-3">Sem dados</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <ng-container *ngIf="creditReport.filters.view === 'due'">
+            <div class="col-lg-6">
+              <div class="glass-card p-3 h-100">
+                <h6 class="fw-semibold mb-3">Fatura do período (vencimento)</h6>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle table-sm app-table">
+                    <thead>
+                      <tr class="text-secondary">
+                        <th>Vencimento</th>
+                        <th>Compra</th>
+                        <th>Categoria</th>
+                        <th>Parcela</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Pago em</th>
+                        <th>Conta</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of creditReport.billRows">
+                        <td>{{ formatDateShort(row.dueDate) }}</td>
+                        <td class="text-truncate" style="max-width: 180px;">{{ row.description }}</td>
+                        <td>{{ row.categoryName }}</td>
+                        <td>{{ row.installmentLabel }}</td>
+                        <td class="fw-semibold">
+                          {{ row.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                        </td>
+                        <td>
+                          <span class="badge" [ngClass]="{
+                              'bg-success-subtle text-success': row.status === 'Pago',
+                              'bg-warning-subtle text-warning': row.status === 'Pendente'
+                            }">{{ row.status }}</span>
+                        </td>
+                        <td>{{ row.paidAt ? formatDateShort(row.paidAt) : '-' }}</td>
+                        <td>{{ row.accountName }}</td>
+                      </tr>
+                      <tr *ngIf="creditReport.billRows.length === 0">
+                        <td colspan="8" class="text-secondary text-center py-3">Sem parcelas no período.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="creditReport.filters.view === 'payment'">
+            <div class="col-lg-6">
+              <div class="glass-card p-3 h-100">
+                <h6 class="fw-semibold mb-3">Pagamentos no período (data do pagamento)</h6>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle table-sm app-table">
+                    <thead>
+                      <tr class="text-secondary">
+                        <th>Pagamento</th>
+                        <th>Valor</th>
+                        <th>Cartão</th>
+                        <th>Compra</th>
+                        <th>Parcela</th>
+                        <th>Conta</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of creditReport.paymentRows">
+                        <td>{{ formatDateShort(row.paidAt) }}</td>
+                        <td class="fw-semibold">
+                          {{ row.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                        </td>
+                        <td>{{ row.cardName }}</td>
+                        <td class="text-truncate" style="max-width: 180px;">{{ row.description }}</td>
+                        <td>{{ row.installmentLabel }}</td>
+                        <td>{{ row.accountName }}</td>
+                      </tr>
+                      <tr *ngIf="creditReport.paymentRows.length === 0">
+                        <td colspan="6" class="text-secondary text-center py-3">Sem pagamentos no período.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </ng-container>
+
+        <ng-template #emptyCreditTpl>
+          <div class="col-12">
+            <div class="glass-card p-3 text-secondary">
+              Nenhum dado de cartão encontrado para este período.
+            </div>
+          </div>
+        </ng-template>
+      </ng-container>
+    </div>
+  </div>
+
+  <ng-container *ngIf="viewMode === 'default' && periodMode === 'annual'">
     <div class="col-12">
       <div class="glass-card p-3">
         <div class="row g-3 align-items-end">

@@ -35,6 +35,14 @@ export type AnnualReportRow = {
   saldo: number;
 };
 
+export type RelatorioSheet = {
+  name: string;
+  headers: string[];
+  rows: Array<Array<string | number>>;
+  columnWidths?: number[];
+  columnFormats?: Record<number, string>;
+};
+
 @Injectable({ providedIn: 'root' })
 export class ReportExportService {
   async exportRelatorioXlsx(params: {
@@ -423,6 +431,79 @@ export class ReportExportService {
     });
 
     const safeName = (params.fileName || params.titulo)
+      .replace(/[\\/:*?"<>|]/g, '')
+      .trim()
+      .replace(/\s+/g, '_');
+    const finalName = safeName.toLowerCase().endsWith('.xlsx') ? safeName : `${safeName}.xlsx`;
+    saveAs(blob, finalName);
+  }
+
+  async exportRelatorioCartaoXlsx(params: { fileName: string; sheets: RelatorioSheet[] }): Promise<void> {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Gest\u00e3o de Gastos';
+    wb.created = new Date();
+
+    const thin: Border = { style: 'thin', color: { argb: 'FF111827' } };
+    const hair: Border = { style: 'hair', color: { argb: 'FFE5E7EB' } };
+    const fullBorder: Partial<Borders> = {
+      top: thin,
+      left: thin,
+      bottom: thin,
+      right: thin
+    };
+
+    params.sheets.forEach((sheet) => {
+      const ws = wb.addWorksheet(sheet.name, {
+        views: [{ state: 'frozen', ySplit: 1 }]
+      });
+
+      const headerRow = ws.getRow(1);
+      headerRow.values = sheet.headers;
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      headerRow.height = 20;
+
+      for (let i = 1; i <= sheet.headers.length; i++) {
+        const cell = ws.getCell(1, i);
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1F2937' }
+        };
+        cell.border = fullBorder;
+      }
+
+      sheet.rows.forEach((row, idx) => {
+        const rowIndex = 2 + idx;
+        ws.getRow(rowIndex).values = row;
+        for (let c = 1; c <= sheet.headers.length; c++) {
+          const cell = ws.getCell(rowIndex, c);
+          cell.border = { bottom: hair };
+          const format = sheet.columnFormats?.[c];
+          if (format) {
+            cell.numFmt = format;
+          }
+        }
+      });
+
+      if (sheet.columnWidths?.length) {
+        sheet.columnWidths.forEach((width, index) => {
+          ws.getColumn(index + 1).width = width;
+        });
+      }
+
+      ws.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: sheet.headers.length }
+      };
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+
+    const safeName = params.fileName
       .replace(/[\\/:*?"<>|]/g, '')
       .trim()
       .replace(/\s+/g, '_');

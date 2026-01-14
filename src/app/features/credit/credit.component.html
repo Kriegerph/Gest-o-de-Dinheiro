@@ -1,0 +1,396 @@
+<div class="row g-3">
+  <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <p class="text-uppercase text-primary small mb-1">Crédito</p>
+      <h3 class="fw-bold mb-0">Crédito</h3>
+      <div *ngIf="reconciling" class="text-secondary small mt-1">Conciliando parcelas vencidas...</div>
+    </div>
+
+    <div class="credit-tabs d-flex flex-wrap gap-2">
+      <button class="btn btn-sm"
+        [ngClass]="activeTab === 'cards' ? 'btn-primary' : 'btn-outline-light'"
+        type="button" (click)="setTab('cards')">
+        Cartões
+      </button>
+      <button class="btn btn-sm"
+        [ngClass]="activeTab === 'purchases' ? 'btn-primary' : 'btn-outline-light'"
+        type="button" (click)="setTab('purchases')">
+        Compras
+      </button>
+      <button class="btn btn-sm"
+        [ngClass]="activeTab === 'diagnostic' ? 'btn-primary' : 'btn-outline-light'"
+        type="button" (click)="setTab('diagnostic')">
+        Diagnóstico
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="activeTab === 'cards'">
+    <div class="col-lg-4">
+      <div class="glass-card p-3 h-100">
+        <h6 class="fw-semibold mb-3">{{ editingCardId ? 'Editar cartão' : 'Novo cartão' }}</h6>
+        <ng-container *ngIf="accounts$ | async as accounts">
+          <form [formGroup]="cardForm" class="d-grid gap-3" (ngSubmit)="saveCard()">
+            <div>
+              <label class="form-label text-secondary">Nome</label>
+              <input class="form-control glass-input" formControlName="name" placeholder="Ex: Cartão principal" />
+            </div>
+            <div>
+              <label class="form-label text-secondary">Bandeira</label>
+              <input class="form-control glass-input" formControlName="brand" placeholder="Ex: Visa" />
+            </div>
+            <div>
+              <label class="form-label text-secondary">Limite</label>
+              <input type="number" class="form-control glass-input" formControlName="limit"
+                placeholder="Ex: 3500.00" step="0.01" />
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label text-secondary">Dia de fechamento</label>
+                <input type="number" class="form-control glass-input" formControlName="closingDay"
+                  placeholder="1-28" min="1" max="28" />
+              </div>
+              <div class="col-6">
+                <label class="form-label text-secondary">Dia de vencimento</label>
+                <input type="number" class="form-control glass-input" formControlName="dueDay"
+                  placeholder="1-28" min="1" max="28" />
+              </div>
+            </div>
+            <div>
+              <label class="form-label text-secondary">Conta de pagamento</label>
+              <select class="form-select glass-input" formControlName="paymentAccountId">
+                <option value="" disabled>Selecione...</option>
+                <option *ngFor="let account of accounts" [value]="account.id">{{ account.name }}</option>
+              </select>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="savingCard">
+                <span *ngIf="savingCard" class="spinner-border spinner-border-sm me-2"></span>
+                {{ savingCard ? 'Salvando...' : editingCardId ? 'Salvar' : 'Adicionar' }}
+              </button>
+              <button class="btn btn-outline-light" type="button" (click)="resetCardForm()">Limpar</button>
+            </div>
+          </form>
+          <div *ngIf="accounts.length === 0" class="text-warning small mt-2">
+            Cadastre uma conta para vincular o cartão.
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="glass-card p-3 h-100">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Cartão</th>
+                <th class="text-end">Limite</th>
+                <th>Vencimento</th>
+                <th>Conta</th>
+                <th class="text-end">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngIf="cardsView$ | async as cards; else loadingCardsTpl">
+                <ng-container *ngIf="cards.length > 0; else emptyCardsTpl">
+                  <tr *ngFor="let card of cards; trackBy: trackById">
+                    <td>
+                      <div class="fw-semibold">{{ card.name }}</div>
+                      <div class="text-secondary small">{{ card.brand || 'Sem bandeira' }}</div>
+                    </td>
+                    <td class="text-end">
+                      <span *ngIf="card.limit !== null; else noLimit">
+                        {{ card.limit | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </span>
+                      <ng-template #noLimit>-</ng-template>
+                    </td>
+                    <td>
+                      <div class="small">Fechamento: {{ card.closingDay || '-' }}</div>
+                      <div class="small">Vencimento: {{ card.dueDay }}</div>
+                    </td>
+                    <td>{{ card.paymentAccountName }}</td>
+                    <td class="text-end">
+                      <button class="btn btn-sm btn-outline-light me-2" (click)="editCard(card)">
+                        <i class="bi bi-pencil me-1"></i>
+                        Editar
+                      </button>
+                      <button class="btn btn-sm btn-outline-light" (click)="deleteCard(card)"
+                        [disabled]="deletingCardId === card.id">
+                        <span *ngIf="deletingCardId === card.id" class="spinner-border spinner-border-sm me-1"></span>
+                        {{ deletingCardId === card.id ? 'Excluindo...' : 'Excluir' }}
+                      </button>
+                    </td>
+                  </tr>
+                </ng-container>
+              </ng-container>
+            </tbody>
+            <ng-template #loadingCardsTpl>
+              <tr *ngFor="let _ of skeletonRows">
+                <td><div class="skeleton skeleton-line w-50"></div></td>
+                <td class="text-end"><div class="skeleton skeleton-line w-50 ms-auto"></div></td>
+                <td><div class="skeleton skeleton-line w-75"></div></td>
+                <td><div class="skeleton skeleton-line w-50"></div></td>
+                <td class="text-end"><div class="skeleton skeleton-line w-50 ms-auto"></div></td>
+              </tr>
+            </ng-template>
+            <ng-template #emptyCardsTpl>
+              <tr>
+                <td colspan="5">
+                  <div class="empty-state">
+                    <div>Nenhum cartão cadastrado.</div>
+                    <button class="btn btn-sm btn-primary" type="button" (click)="resetCardForm()">
+                      Cadastrar cartão
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="activeTab === 'purchases'">
+    <div class="col-lg-5">
+      <div class="glass-card p-3 h-100">
+        <h6 class="fw-semibold mb-3">Nova compra</h6>
+        <ng-container *ngIf="cards$ | async as cards">
+          <ng-container *ngIf="cards.length > 0; else noCardsTpl">
+            <form [formGroup]="purchaseForm" class="d-grid gap-3" (ngSubmit)="savePurchase()">
+              <div>
+                <label class="form-label text-secondary">Cartão</label>
+                <select class="form-select glass-input" formControlName="cardId">
+                  <option value="" disabled>Selecione...</option>
+                  <option *ngFor="let card of cards" [value]="card.id">{{ card.name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-secondary">Descrição</label>
+                <input class="form-control glass-input" formControlName="description"
+                  placeholder="Ex: Notebook" />
+              </div>
+              <ng-container *ngIf="categories$ | async as categories">
+                <div>
+                  <label class="form-label text-secondary">Categoria (opcional)</label>
+                  <select class="form-select glass-input" formControlName="categoryId">
+                    <option value="">Sem categoria</option>
+                    <option *ngFor="let category of categories" [value]="category.id">
+                      {{ category.name }}
+                    </option>
+                  </select>
+                </div>
+              </ng-container>
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label text-secondary">Data da compra</label>
+                  <input type="date" class="form-control glass-input" formControlName="purchaseDate" />
+                </div>
+                <div class="col-6">
+                  <label class="form-label text-secondary">Primeiro vencimento</label>
+                  <input type="date" class="form-control glass-input" formControlName="firstDueDate" />
+                </div>
+              </div>
+              <div class="row g-2 align-items-end">
+                <div class="col-6">
+                  <label class="form-label text-secondary">Número de parcelas</label>
+                  <input type="number" class="form-control glass-input" formControlName="installmentsCount"
+                    min="1" max="48" />
+                </div>
+                <div class="col-6">
+                  <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" formControlName="sameValue" id="sameValue" />
+                    <label class="form-check-label text-secondary" for="sameValue">
+                      Todas as parcelas com o mesmo valor
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div formArrayName="installmentAmounts" class="d-grid gap-2">
+                <label class="form-label text-secondary">Valores das parcelas</label>
+                <div class="installment-input" *ngFor="let ctrl of installmentControls; let i = index">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span class="text-secondary small">Parcela {{ i + 1 }}</span>
+                  </div>
+                  <input type="number" class="form-control glass-input mt-1" [formControlName]="i"
+                    [readonly]="sameValueEnabled && i > 0" min="0.01" step="0.01"
+                    (input)="handleInstallmentInput(i)" />
+                </div>
+                <div class="text-secondary small">
+                  Total: {{ installmentsTotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </div>
+              </div>
+
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="savingPurchase">
+                  <span *ngIf="savingPurchase" class="spinner-border spinner-border-sm me-2"></span>
+                  {{ savingPurchase ? 'Salvando...' : 'Cadastrar compra' }}
+                </button>
+                <button class="btn btn-outline-light" type="button" (click)="resetPurchaseForm()">Limpar</button>
+              </div>
+            </form>
+          </ng-container>
+          <ng-template #noCardsTpl>
+            <div class="empty-state">
+              <div>Cadastre um cartão para começar.</div>
+              <button class="btn btn-sm btn-primary" type="button" (click)="setTab('cards')">
+                Ir para cartões
+              </button>
+            </div>
+          </ng-template>
+        </ng-container>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="glass-card p-3 h-100">
+        <h6 class="fw-semibold mb-3">Compras cadastradas</h6>
+        <ng-container *ngIf="purchasesView$ | async as purchases; else loadingPurchasesTpl">
+          <ng-container *ngIf="purchases.length > 0; else emptyPurchasesTpl">
+            <div *ngFor="let purchase of purchases; trackBy: trackById" class="purchase-card p-3 mb-3">
+              <div class="d-flex justify-content-between flex-wrap gap-2">
+                <div>
+                  <div class="fw-semibold">{{ purchase.description }}</div>
+                  <div class="text-secondary small">
+                    {{ purchase.cardName }} • {{ formatDate(purchase.purchaseDate) }}
+                  </div>
+                  <div *ngIf="purchase.categoryName" class="text-secondary small">
+                    Categoria: {{ purchase.categoryName }}
+                  </div>
+                </div>
+                <div class="text-end">
+                  <div class="fw-semibold">
+                    {{ purchase.totalAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  </div>
+                  <div class="text-secondary small">
+                    {{ purchase.paidCount }}/{{ purchase.installmentsCount }} pagas
+                  </div>
+                  <div class="d-flex justify-content-end gap-2 mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-info"
+                      (click)="editPurchase(purchase)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                      (click)="deletePurchase(purchase)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="purchase.installments.length > 0" class="installments-grid mt-3">
+                <div *ngFor="let installment of purchase.installments; trackBy: trackByInstallment"
+                  class="installment-chip" [class.paid]="installment.paid"
+                  [class.installment-paid]="installment.paid">
+                  <div class="small">#{{ installment.installmentNumber }}</div>
+                  <span class="installment-date">
+                    {{
+                      toJsDate(installment.paid ? installment.paidAt : installment.dueDate)
+                        | date:'dd/MM/yyyy'
+                    }}
+                  </span>
+                  <div class="fw-semibold">
+                    {{ installment.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  </div>
+                  <span class="installment-status">
+                    {{ installment.paid ? 'Pago' : 'Pendente' }}
+                  </span>
+                  <button type="button"
+                    class="btn btn-sm mt-2"
+                    [class.btn-outline-success]="!installment.paid"
+                    [class.btn-success]="installment.paid"
+                    (click)="toggleInstallmentPaid(purchase, installment)">
+                    <i class="bi"
+                      [class.bi-check2-circle]="!installment.paid"
+                      [class.bi-check2-circle-fill]="installment.paid"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </ng-container>
+        <ng-template #loadingPurchasesTpl>
+          <div *ngFor="let _ of skeletonRows" class="purchase-card p-3 mb-3">
+            <div class="skeleton skeleton-line w-50 mb-2"></div>
+            <div class="skeleton skeleton-line w-75 mb-2"></div>
+            <div class="skeleton skeleton-line w-100"></div>
+          </div>
+        </ng-template>
+        <ng-template #emptyPurchasesTpl>
+          <div class="empty-state">
+            <div>Nenhuma compra cadastrada.</div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="activeTab === 'diagnostic'">
+    <ng-container *ngIf="diagnosticView$ | async as diagnostic; else loadingDiagnosticTpl">
+      <div class="col-lg-4">
+        <div class="glass-card p-3 h-100">
+          <h6 class="fw-semibold mb-3">Totais em aberto</h6>
+          <div class="diagnostic-total">
+            {{ diagnostic.totalOpen | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+          </div>
+          <div class="mt-3" *ngIf="diagnostic.cardTotals.length > 0; else emptyCardTotalsTpl">
+            <div *ngFor="let item of diagnostic.cardTotals" class="d-flex justify-content-between mb-2">
+              <span>{{ item.cardName }}</span>
+              <span class="fw-semibold">
+                {{ item.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </span>
+            </div>
+          </div>
+          <ng-template #emptyCardTotalsTpl>
+            <div class="text-secondary small">Nenhum valor em aberto.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="glass-card p-3 h-100">
+          <h6 class="fw-semibold mb-3">Próximos vencimentos</h6>
+          <div *ngIf="diagnostic.upcoming.length > 0; else emptyUpcomingTpl">
+            <div *ngFor="let item of diagnostic.upcoming" class="d-flex justify-content-between mb-2">
+              <span>{{ formatDate(item.key) }}</span>
+              <span class="fw-semibold">
+                {{ item.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </span>
+            </div>
+          </div>
+          <ng-template #emptyUpcomingTpl>
+            <div class="text-secondary small">Sem vencimentos nos próximos 30 dias.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="glass-card p-3 h-100">
+          <h6 class="fw-semibold mb-3">Visão mensal</h6>
+          <div *ngIf="diagnostic.monthly.length > 0; else emptyMonthlyTpl">
+            <div *ngFor="let item of diagnostic.monthly" class="d-flex justify-content-between mb-2">
+              <span>{{ item.key }}</span>
+              <span class="fw-semibold">
+                {{ item.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </span>
+            </div>
+          </div>
+          <ng-template #emptyMonthlyTpl>
+            <div class="text-secondary small">Sem parcelas futuras.</div>
+          </ng-template>
+        </div>
+      </div>
+    </ng-container>
+    <ng-template #loadingDiagnosticTpl>
+      <div class="col-12">
+        <div class="glass-card p-3">
+          <div class="skeleton skeleton-line w-25 mb-2"></div>
+          <div class="skeleton skeleton-line w-50 mb-2"></div>
+          <div class="skeleton skeleton-line w-75"></div>
+        </div>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>

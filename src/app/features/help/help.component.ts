@@ -159,6 +159,32 @@ export class HelpComponent {
       ]
     },
     {
+      id: 'credito',
+      title: 'Crédito (Cartão de crédito)',
+      summary: 'Controle de compras parceladas e adiantamento de parcelas.',
+      what:
+        'Esta seção explica como funciona o controle de compras no cartão de crédito, o parcelamento, o adiantamento de parcelas e o impacto nos lançamentos e no saldo das contas.',
+      how: [
+        'Cadastre o cartão de crédito para registrar compras parceladas.',
+        'Defina os dias de fechamento e vencimento (ex.: 29 e 7).',
+        'Registre compras parceladas com valores e datas das parcelas.',
+        'Se necessário, edite valores mantendo o histórico de parcelas pagas.',
+        'Marque parcelas como pagas para adiantar o pagamento e gerar lançamento.'
+      ],
+      tips: [
+        'Use a conta correta para que o saldo seja descontado corretamente.',
+        'Parcelas já pagas permanecem marcadas mesmo ao editar valores da compra.',
+        'Desmarcar uma parcela paga remove o lançamento relacionado.'
+      ],
+      notes: [
+        'O mês e o ano são calculados automaticamente a cada ciclo.',
+        'Vencimento é a data prevista; pagamento é a data em que a parcela foi marcada como paga.',
+        'O vencimento da parcela não muda quando ela é paga antecipadamente.',
+        'A data do lançamento é a data do pagamento (dia em que a parcela foi marcada como paga).',
+        'Exemplo: parcela com vencimento em 29/01 paga antecipadamente em 13/01 aparecerá como "Paga em 13/01" e o lançamento será registrado em 13/01.'
+      ]
+    },
+    {
       id: 'configuracoes',
       title: 'Configurações',
       summary: 'Perfil e segurança da conta.',

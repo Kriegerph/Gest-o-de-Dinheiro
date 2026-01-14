@@ -20,7 +20,9 @@ export class SidebarComponent {
     { label: 'Categorias', icon: 'bi-collection', path: '/app/categories' },
     { label: 'Metas', icon: 'bi-bullseye', path: '/app/budgets' },
     { label: 'Relatórios', icon: 'bi-graph-up', path: '/app/reports' },
+    { label: 'Cr\u00e9dito', icon: 'bi-credit-card-2-front', path: '/app/credit' },
     { label: 'Ajuda', icon: 'bi-question-circle', path: '/app/ajuda' },
     { label: 'Configurações', icon: 'bi-gear', path: '/app/settings' }
   ];
 }
+

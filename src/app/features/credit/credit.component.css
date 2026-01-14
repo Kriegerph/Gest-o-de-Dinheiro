@@ -1,0 +1,71 @@
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e5e7eb;
+}
+
+.glass-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.2);
+}
+
+.credit-tabs .btn {
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+}
+
+.purchase-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.installments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.installment-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.installment-chip.paid {
+  border-style: solid;
+  opacity: 0.7;
+}
+
+.installment-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.diagnostic-total {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.installment-paid {
+  border-color: rgba(46, 204, 113, 0.6);
+  background: linear-gradient(
+    135deg,
+    rgba(46, 204, 113, 0.18),
+    rgba(46, 204, 113, 0.05)
+  );
+}
+
+.installment-paid .text-muted,
+.installment-paid small {
+  color: #9be7c4;
+}

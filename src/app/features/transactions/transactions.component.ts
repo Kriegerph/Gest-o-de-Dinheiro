@@ -65,13 +65,42 @@ export class TransactionsComponent implements OnDestroy {
   transactions$ = this.auth.user$.pipe(
     tap(() => (this.loadingTransactions = true)),
     switchMap((user) => (user ? this.transactionsService.listAll$(user.uid) : of([]))),
-    map((items) => items ?? []),
+    map((items) => (items ?? []).slice().sort((a: any, b: any) => {
+      // 1) Data do lançamento DESC
+      // se for string YYYY-MM-DD, comparar direto resolve.
+      const ad = a.date ?? a.data;
+      const bd = b.date ?? b.data;
+
+      if (typeof ad === 'string' && typeof bd === 'string' && ad !== bd) {
+        return bd.localeCompare(ad); // desc
+      }
+
+      const da = toMillis(ad);
+      const db = toMillis(bd);
+      if (db !== da) return db - da;
+
+      // 2) createdAt DESC (se existir)
+      const ca = toMillis(a.createdAt);
+      const cb = toMillis(b.createdAt);
+      if (cb !== ca) return cb - ca;
+
+      // 3) updatedAt DESC (se existir)
+      const ua = toMillis(a.updatedAt);
+      const ub = toMillis(b.updatedAt);
+      if (ub !== ua) return ub - ua;
+
+      // 4) desempate estável por id DESC
+      const ia = stableHashId(a.id);
+      const ib = stableHashId(b.id);
+      return ib - ia;
+    })),
     tap(() => (this.loadingTransactions = false)),
     catchError(() => {
       this.loadingTransactions = false;
       return of([]);
     })
   );
+
 
   transactionsView$ = combineLatest([this.transactions$, this.pendingDeleteIds$]).pipe(
     map(([items, pendingIds]) => items.filter((tx) => !pendingIds.has(tx.id ?? '')))
@@ -367,3 +396,26 @@ export class TransactionsComponent implements OnDestroy {
     );
   }
 }
+
+function toMillis(v: any): number {
+  if (!v) return 0;
+  if (typeof v.toMillis === 'function') return v.toMillis(); // Firestore Timestamp
+  if (v instanceof Date) return v.getTime();
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    // tenta ISO ou YYYY-MM-DD
+    const t = Date.parse(v);
+    return Number.isFinite(t) ? t : 0;
+  }
+  return 0;
+}
+
+function stableHashId(id?: string | null): number {
+  if (!id) return 0;
+  let acc = 0;
+  for (let i = 0; i < id.length; i++) {
+    acc = (acc * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return acc;
+}
+

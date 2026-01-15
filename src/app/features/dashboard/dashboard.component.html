@@ -424,6 +424,57 @@
         </ng-template>
       </div>
     </div>
+
+    <div class="col-12">
+      <section class="glass-card p-3 timeline-section" (click)="closeTooltip()">
+        <div class="timeline-viewport">
+          <div class="timeline-header">
+            <div class="timeline-title">
+              <h6 class="fw-semibold mb-1">Linha do tempo do mes</h6>
+              <small class="text-secondary">
+                Passe o mouse (ou toque) em um dia para ver entradas e saidas.
+              </small>
+            </div>
+            <div class="timeline-help text-secondary">
+              <small>Dica: dias com movimentacao ficam destacados.</small>
+            </div>
+          </div>
+
+          <div class="timeline-scroll" *ngIf="timelineDays$ | async as days">
+            <div class="timeline-track">
+              <div class="timeline-line"></div>
+
+              <div class="timeline-node" *ngFor="let d of days; trackBy: trackByTimelineDay">
+                <div class="timeline-dot"
+                  [class.has-data]="d.hasData"
+                  [class.today]="d.isToday"
+                  [class.open]="openDay === d.day"
+                  (click)="$event.stopPropagation(); toggleDayTooltip(d.day)">
+                  <div class="timeline-tooltip">
+                    <div class="tt-date">{{ d.date | date:'dd/MM' }}</div>
+
+                    <div class="tt-empty" *ngIf="d.income === 0 && d.expense === 0">
+                      Sem movimentacoes
+                    </div>
+
+                    <div class="tt-row" *ngIf="d.income !== 0 || d.expense !== 0">
+                      Entradas: <b>{{ d.income | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</b>
+                    </div>
+                    <div class="tt-row" *ngIf="d.income !== 0 || d.expense !== 0">
+                      Saidas: <b>{{ d.expense | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</b>
+                    </div>
+                    <div class="tt-row" *ngIf="d.income !== 0 || d.expense !== 0">
+                      Saldo do dia: <b>{{ d.net | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</b>
+                    </div>
+                  </div>
+                </div>
+                <div class="timeline-day-label">{{ d.day }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   </ng-container>
 
   <ng-template #dashboardLoadingTpl>
@@ -442,4 +493,3 @@
     </div>
   </ng-template>
 </div>
-

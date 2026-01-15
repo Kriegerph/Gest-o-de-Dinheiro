@@ -244,10 +244,36 @@ export class ReportsComponent {
             return null;
           }
           const saldoInicialTotal = this.getSaldoInicialTotal(accounts);
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const currentMonthIndex = now.getMonth();
+          const selectedYear = Number(annual.year ?? this.annualYear);
+          const limitMonth =
+            selectedYear < currentYear ? 11 : selectedYear > currentYear ? -1 : currentMonthIndex;
+          let accIncome = 0;
+          let accExpense = 0;
+          const months = (annual.months ?? []).map((month, index) => {
+            const income = Number(month.income ?? 0);
+            const expense = Number(month.expense ?? 0);
+            const monthIndex = Number(month.month ?? index + 1) - 1;
+            let balance = 0;
+            if (monthIndex <= limitMonth) {
+              accIncome += income;
+              accExpense += expense;
+              balance = saldoInicialTotal + accIncome - accExpense;
+            }
+            return {
+              ...month,
+              income,
+              expense,
+              balance
+            };
+          });
           const totalIncome = annual.totals?.totalIncome ?? 0;
           const totalExpense = annual.totals?.totalExpense ?? 0;
           return {
             ...annual,
+            months,
             totals: {
               totalIncome,
               totalExpense,

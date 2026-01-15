@@ -117,6 +117,16 @@ type TransactionView = {
   categoryName: string;
 };
 
+type TimelineDay = {
+  day: number;
+  date: Date;
+  income: number;
+  expense: number;
+  net: number;
+  hasData: boolean;
+  isToday: boolean;
+};
+
 type UpcomingInstallmentView = {
   id?: string;
   dueDate: string;
@@ -197,6 +207,7 @@ export class DashboardComponent {
   readonly next15 = this.addDays(this.today, 15);
 
   loadingDashboard = true;
+  openDay: number | null = null;
   readonly skeletonCards = Array.from({ length: 6 });
   readonly skeletonRows = Array.from({ length: 5 });
 
@@ -206,6 +217,79 @@ export class DashboardComponent {
       user ? this.transactionsService.listMonth$(user.uid, this.month, this.year) : of([])
     ),
     catchError(() => of([]))
+  );
+
+  timelineDays$ = this.transactions$.pipe(
+    map((transactions) => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const monthIndex = now.getMonth();
+      const todayNum = now.getDate();
+      const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+      const byDay = new Map<number, { income: number; expense: number }>();
+
+      (transactions ?? []).forEach((tx) => {
+        const anyTx = tx as {
+          date?: unknown;
+          data?: unknown;
+          createdAt?: unknown;
+          timestamp?: unknown;
+          amount?: unknown;
+          value?: unknown;
+          type?: unknown;
+          kind?: unknown;
+          isIncome?: unknown;
+          isExpense?: unknown;
+        };
+        const date = this.toDate(
+          anyTx.date ?? anyTx.data ?? anyTx.createdAt ?? anyTx.timestamp
+        );
+        if (!date) {
+          return;
+        }
+        const dayStart = this.startOfDay(date);
+        if (dayStart.getFullYear() !== year || dayStart.getMonth() !== monthIndex) {
+          return;
+        }
+        const day = dayStart.getDate();
+        const current = byDay.get(day) ?? { income: 0, expense: 0 };
+        const amount = Number(anyTx.amount ?? anyTx.value ?? 0) || 0;
+        const type = String(anyTx.type ?? anyTx.kind ?? '').toLowerCase();
+        const isIncome =
+          type.includes('income') ||
+          type.includes('entrada') ||
+          type === 'in' ||
+          anyTx.isIncome === true;
+        const isExpense =
+          type.includes('expense') ||
+          type.includes('saida') ||
+          type === 'out' ||
+          anyTx.isExpense === true;
+
+        if (isIncome) {
+          current.income += amount;
+        } else if (isExpense) {
+          current.expense += amount;
+        }
+        byDay.set(day, current);
+      });
+
+      const result: TimelineDay[] = [];
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const agg = byDay.get(day) ?? { income: 0, expense: 0 };
+        result.push({
+          day,
+          date: new Date(year, monthIndex, day, 12, 0, 0, 0),
+          income: agg.income,
+          expense: agg.expense,
+          net: agg.income - agg.expense,
+          hasData: agg.income !== 0 || agg.expense !== 0,
+          isToday: day === todayNum
+        });
+      }
+
+      return result;
+    })
   );
 
   allTransactions$ = this.auth.user$.pipe(
@@ -560,6 +644,18 @@ export class DashboardComponent {
 
   formatDate(ymd: string): string {
     return formatPtBrFromYmd(ymd);
+  }
+
+  trackByTimelineDay(_: number, day: TimelineDay) {
+    return day.day;
+  }
+
+  toggleDayTooltip(day: number) {
+    this.openDay = this.openDay === day ? null : day;
+  }
+
+  closeTooltip() {
+    this.openDay = null;
   }
 
   private emptyView(): DashboardView {
@@ -943,6 +1039,12 @@ export class DashboardComponent {
     return value instanceof Date;
   }
 
+  private startOfDay(date: Date): Date {
+    const next = new Date(date);
+    next.setHours(0, 0, 0, 0);
+    return next;
+  }
+
   private toDate(value: unknown): Date | null {
     if (!value) {
       return null;
@@ -956,7 +1058,7 @@ export class DashboardComponent {
     if (typeof value === 'string') {
       if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
         const [year, month, day] = value.split('-').map(Number);
-        return new Date(year, month - 1, day);
+        return new Date(year, month - 1, day, 12, 0, 0, 0);
       }
       const parsed = new Date(value);
       return Number.isNaN(parsed.getTime()) ? null : parsed;

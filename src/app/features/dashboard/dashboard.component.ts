@@ -168,7 +168,8 @@ type AccountSummaryView = {
 
 type InvestmentSummary = {
   totalEstimated: number;
-  yieldAfter: number | null;
+  totalYield: number | null;
+  totalYieldPercent: number | null;
   updatedAt: string | null;
 };
 
@@ -655,7 +656,8 @@ export class DashboardComponent {
           alerts: alerts.slice(0, 6),
           investments: {
             totalEstimated: hasInvestments ? investmentsSummary.totalEstimated : 0,
-            yieldAfter: hasInvestments ? investmentsSummary.totalYield : null,
+            totalYield: hasInvestments ? investmentsSummary.totalYield : null,
+            totalYieldPercent: hasInvestments ? investmentsSummary.totalYieldPercent : null,
             updatedAt: hasInvestments ? investmentsSummary.updatedAt : null
           },
           charts: {
@@ -720,7 +722,8 @@ export class DashboardComponent {
       alerts: [],
       investments: {
         totalEstimated: 0,
-        yieldAfter: null,
+        totalYield: null,
+        totalYieldPercent: null,
         updatedAt: null
       },
       charts: {

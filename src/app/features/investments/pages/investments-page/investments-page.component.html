@@ -6,7 +6,7 @@
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-sm btn-outline-light" type="button" (click)="resetForm()" *ngIf="editingId">
-        Cancelar edicao
+        Cancelar edição
       </button>
     </div>
   </div>
@@ -47,7 +47,7 @@
 
     <div class="col-12" *ngIf="view.summary.indexMissing">
       <div class="glass-card p-3 text-warning">
-        Sem indice atualizado para investimentos indexados.
+        Sem índice atualizado para investimentos indexados.
       </div>
     </div>
 
@@ -61,9 +61,12 @@
           </div>
           <div>
             <label class="form-label text-secondary">Tipo</label>
-            <select class="form-select" formControlName="type">
+            <select class="form-select" formControlName="type" (change)="onTypeChange()">
               <option *ngFor="let option of typeOptions" [value]="option.value">{{ option.label }}</option>
             </select>
+            <small class="text-secondary">
+              Ex: Caixinha Nubank = Renda fixa + % do CDI (100) + capitalização diária.
+            </small>
           </div>
           <div class="row g-2">
             <div class="col-6">
@@ -106,18 +109,18 @@
             </div>
             <div class="row g-2">
               <div class="col-6">
-                <label class="form-label text-secondary">Total investido ate hoje</label>
+                <label class="form-label text-secondary">Total investido até hoje</label>
                 <input type="number" class="form-control glass-input" formControlName="totalInvestedToDate"
                   step="0.01" placeholder="Opcional" />
               </div>
               <div class="col-6">
-                <label class="form-label text-secondary">Rendimento acumulado ate hoje</label>
+                <label class="form-label text-secondary">Rendimento acumulado até hoje</label>
                 <input type="number" class="form-control glass-input" formControlName="preAppYield" step="0.01"
                   placeholder="Opcional" />
               </div>
             </div>
             <small class="text-secondary">
-              Valores anteriores ao app servem para alinhar seu historico. O app nao recalcula o passado.
+              Valores anteriores ao app servem para alinhar seu histórico. O app não recalcula o passado.
             </small>
           </div>
 
@@ -149,10 +152,10 @@
           </div>
           <div class="row g-2">
             <div [class.col-6]="isManualMode" [class.col-12]="isIndexMode">
-              <label class="form-label text-secondary">Capitalizacao</label>
+              <label class="form-label text-secondary">Capitalização</label>
               <select class="form-select" formControlName="compounding">
                 <option value="monthly">Mensal</option>
-                <option value="daily">Diaria</option>
+                <option value="daily">Diária</option>
               </select>
             </div>
           </div>
@@ -160,7 +163,7 @@
           <div class="d-flex gap-2">
             <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="saving">
               <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-              {{ saving ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Adicionar' }}
+              {{ saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar' }}
             </button>
             <button class="btn btn-outline-light" type="button" (click)="resetForm()">Limpar</button>
           </div>
@@ -179,7 +182,7 @@
                 <th class="text-end">Atual estimado</th>
                 <th class="text-end">Rendimento</th>
                 <th>Status</th>
-                <th class="text-end">Acoes</th>
+                <th class="text-end">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -204,7 +207,7 @@
                     </div>
                     <div class="text-secondary small">Estimado</div>
                     <div class="text-warning small" *ngIf="item.indexMissing">
-                      Sem indice atualizado
+                      Sem índice atualizado
                     </div>
                     <div class="text-secondary small" *ngIf="item.placeholderUsed">
                       Taxa placeholder aplicada
@@ -212,11 +215,14 @@
                     <div class="text-secondary small">Atualizado em {{ item.updatedLabel }}</div>
                   </td>
                   <td class="text-end">
-                    <div class="fw-semibold" [class.text-success]="item.yieldAfter >= 0"
-                      [class.text-danger]="item.yieldAfter < 0">
-                      {{ item.yieldAfter | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    <div class="fw-semibold" [class.text-success]="item.totalYield >= 0"
+                      [class.text-danger]="item.totalYield < 0">
+                      {{ item.totalYield | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
                     </div>
-                    <div class="text-secondary small">{{ item.yieldPercent | number:'1.0-2' }}%</div>
+                    <div class="text-secondary small">{{ item.totalReturnPercent | number:'1.0-2' }}%</div>
+                    <div class="text-secondary small" *ngIf="item.hadBeforeApp">
+                      Total (inclui antes do app)
+                    </div>
                   </td>
                   <td>
                     <span class="badge" [ngClass]="{
@@ -226,16 +232,40 @@
                       {{ item.statusLabel }}
                     </span>
                   </td>
-                  <td class="text-end">
-                    <button class="btn btn-sm btn-outline-light me-2" type="button" (click)="edit(item)">
-                      <i class="bi bi-pencil me-1"></i>
-                      Editar
-                    </button>
-                    <button class="btn btn-sm btn-outline-light" type="button" (click)="toggleStatus(item)"
-                      [disabled]="togglingId === item.id">
-                      <span *ngIf="togglingId === item.id" class="spinner-border spinner-border-sm me-1"></span>
-                      {{ item.status === 'active' ? 'Inativar' : 'Ativar' }}
-                    </button>
+                  <td class="text-end actions-cell">
+                    <div class="actions-stack">
+                      <div class="actions-row actions-primary">
+                        <button class="btn btn-sm btn-outline-success action-btn" type="button"
+                          (click)="openDeposit(item)" [disabled]="item.status === 'inactive'"
+                          title="Adicionar valor ao investimento">
+                          <i class="bi bi-plus-circle"></i>
+                          <span class="action-label">Aportar</span>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning action-btn" type="button"
+                          (click)="openWithdraw(item)" [disabled]="item.status === 'inactive'"
+                          title="Resgatar valor do investimento">
+                          <i class="bi bi-dash-circle"></i>
+                          <span class="action-label">Resgatar</span>
+                        </button>
+                      </div>
+                      <div class="actions-row actions-secondary">
+                        <button class="btn btn-sm btn-outline-light action-btn action-btn--ghost" type="button"
+                          (click)="edit(item)" title="Editar investimento">
+                          <i class="bi bi-pencil"></i>
+                          <span class="action-label action-label--secondary">Editar</span>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger action-btn action-btn--danger" type="button"
+                          (click)="toggleStatus(item)" [disabled]="togglingId === item.id"
+                          [attr.title]="item.status === 'active' ? 'Inativar investimento' : 'Ativar investimento'">
+                          <span *ngIf="togglingId === item.id"
+                            class="spinner-border spinner-border-sm me-1"></span>
+                          <i class="bi bi-power"></i>
+                          <span class="action-label action-label--secondary">
+                            {{ item.status === 'active' ? 'Inativar' : 'Ativar' }}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               </ng-container>
@@ -272,4 +302,93 @@
       </div>
     </div>
   </ng-template>
+
+  <div class="modal-backdrop" *ngIf="showDepositModal" (click)="closeDeposit()">
+    <div class="glass-card modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header-row">
+        <h6 class="fw-semibold mb-0">Aportar em {{ selectedInvestment?.name }}</h6>
+        <button class="btn btn-sm btn-outline-light" type="button" (click)="closeDeposit()">Fechar</button>
+      </div>
+      <form [formGroup]="depositForm" class="d-grid gap-3 mt-3" (ngSubmit)="confirmDeposit()">
+        <div>
+          <label class="form-label text-secondary">Valor</label>
+          <input type="number" class="form-control glass-input" formControlName="amount" step="0.01" />
+        </div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label text-secondary">Data</label>
+            <input type="date" class="form-control glass-input" formControlName="date" />
+          </div>
+          <div class="col-6">
+            <label class="form-label text-secondary">Conta de origem</label>
+            <select class="form-select" formControlName="accountId">
+              <option value="" disabled>Selecione...</option>
+              <option *ngFor="let account of (accounts$ | async)" [value]="account.id">
+                {{ account.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="form-label text-secondary">Observação</label>
+          <input class="form-control glass-input" formControlName="notes" placeholder="Opcional" />
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="submittingDeposit">
+            <span *ngIf="submittingDeposit" class="spinner-border spinner-border-sm me-2"></span>
+            Confirmar aporte
+          </button>
+          <button class="btn btn-outline-light" type="button" (click)="closeDeposit()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="showWithdrawModal" (click)="closeWithdraw()">
+    <div class="glass-card modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header-row">
+        <h6 class="fw-semibold mb-0">Resgatar de {{ selectedInvestment?.name }}</h6>
+        <button class="btn btn-sm btn-outline-light" type="button" (click)="closeWithdraw()">Fechar</button>
+      </div>
+      <div class="text-secondary small mt-2">
+        Valor estimado atual:
+        {{ selectedInvestment?.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+      </div>
+      <div class="text-warning small" *ngIf="selectedInvestment?.indexMissing">
+        Valor estimado. Sem indice atualizado.
+      </div>
+      <form [formGroup]="withdrawForm" class="d-grid gap-3 mt-3" (ngSubmit)="confirmWithdraw()">
+        <div>
+          <label class="form-label text-secondary">Valor</label>
+          <input type="number" class="form-control glass-input" formControlName="amount" step="0.01" />
+        </div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label text-secondary">Data</label>
+            <input type="date" class="form-control glass-input" formControlName="date" />
+          </div>
+          <div class="col-6">
+            <label class="form-label text-secondary">Conta de destino</label>
+            <select class="form-select" formControlName="accountId">
+              <option value="" disabled>Selecione...</option>
+              <option *ngFor="let account of (accounts$ | async)" [value]="account.id">
+                {{ account.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="form-label text-secondary">Observação</label>
+          <input class="form-control glass-input" formControlName="notes" placeholder="Opcional" />
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="submittingWithdraw">
+            <span *ngIf="submittingWithdraw" class="spinner-border spinner-border-sm me-2"></span>
+            Confirmar resgate
+          </button>
+          <button class="btn btn-outline-light" type="button" (click)="closeWithdraw()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>

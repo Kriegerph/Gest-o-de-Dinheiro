@@ -88,7 +88,7 @@ export class CreditReconcileService {
           installmentNumber > 0
             ? ` (${installmentNumber}/${purchase.installmentsCount})`
             : '';
-        const description = `Cartao: ${card.name} - ${purchase.description}${suffix}`;
+        const description = `Cartão: ${card.name} - ${purchase.description}${suffix}`;
         const txRef = await addDoc(collection(this.firestore, `users/${uid}/transactions`), {
           type: 'expense',
           description,
@@ -98,7 +98,7 @@ export class CreditReconcileService {
           accountId: installment.paymentAccountId || card.paymentAccountId || null,
           accountOriginId: null,
           accountDestinationId: null,
-          notes: 'Gerado automaticamente pelo Crédito',
+          notes: 'Gerado automaticamente (Crédito)',
           createdAt: serverTimestamp()
         });
 

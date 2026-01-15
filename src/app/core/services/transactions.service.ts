@@ -95,6 +95,9 @@ export class TransactionsService {
       accountOriginId?: string | null;
       accountDestinationId?: string | null;
       notes?: string | null;
+      investmentId?: string | null;
+      investmentAction?: 'deposit' | 'withdraw' | null;
+      source?: string | null;
     }
   ): Promise<void> {
     const ref = collection(this.firestore, `users/${uid}/transactions`);
@@ -105,6 +108,9 @@ export class TransactionsService {
       accountOriginId: data.accountOriginId || null,
       accountDestinationId: data.accountDestinationId || null,
       notes: data.notes || null,
+      investmentId: data.investmentId || null,
+      investmentAction: data.investmentAction || null,
+      source: data.source || null,
       date: data.date,
       createdAt: serverTimestamp()
     });
@@ -123,6 +129,9 @@ export class TransactionsService {
       accountOriginId?: string | null;
       accountDestinationId?: string | null;
       notes?: string | null;
+      investmentId?: string | null;
+      investmentAction?: 'deposit' | 'withdraw' | null;
+      source?: string | null;
     }
   ): Promise<void> {
     const ref = doc(this.firestore, `users/${uid}/transactions/${id}`);
@@ -133,6 +142,9 @@ export class TransactionsService {
       accountOriginId: data.accountOriginId || null,
       accountDestinationId: data.accountDestinationId || null,
       notes: data.notes || null,
+      investmentId: data.investmentId || null,
+      investmentAction: data.investmentAction || null,
+      source: data.source || null,
       date: data.date
     });
   }

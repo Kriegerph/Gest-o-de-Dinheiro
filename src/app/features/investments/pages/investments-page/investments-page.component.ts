@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, combineLatest, firstValueFrom, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
+import { AccountsService } from '../../../../core/services/accounts.service';
+import { CategoriesService } from '../../../../core/services/categories.service';
 import { InvestmentsService } from '../../services/investments.service';
 import {
   IndexContext,
@@ -19,6 +21,7 @@ import {
 } from '../../models/investment.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { formatPtBrFromYmd, toYmdFromLocalDate } from '../../../../shared/utils/date.util';
+import { Account } from '../../../../core/models/account.model';
 
 type InvestmentView = Investment &
   InvestmentCalculation & {
@@ -42,6 +45,8 @@ type InvestmentsPageView = {
 export class InvestmentsPageComponent {
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
+  private accountsService = inject(AccountsService);
+  private categoriesService = inject(CategoriesService);
   private investmentsService = inject(InvestmentsService);
   private indicesService = inject(IndicesService);
   private calculator = inject(InvestmentsCalculatorService);
@@ -54,9 +59,15 @@ export class InvestmentsPageComponent {
   saving = false;
   togglingId: string | null = null;
   loadingInvestments = true;
+  showDepositModal = false;
+  showWithdrawModal = false;
+  submittingDeposit = false;
+  submittingWithdraw = false;
+  selectedInvestment: InvestmentView | null = null;
 
   readonly typeOptions = [
-    { value: 'savings', label: 'Poupanca' },
+    { value: 'fixed_income', label: 'Renda fixa' },
+    { value: 'savings', label: 'Poupança' },
     { value: 'cdb', label: 'CDB' },
     { value: 'treasury_selic', label: 'Tesouro Selic' },
     { value: 'manual', label: 'Manual' }
@@ -91,6 +102,20 @@ export class InvestmentsPageComponent {
     compounding: ['monthly']
   });
 
+  depositForm = this.fb.group({
+    amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    date: [this.todayYmd, Validators.required],
+    accountId: ['', Validators.required],
+    notes: ['']
+  });
+
+  withdrawForm = this.fb.group({
+    amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    date: [this.todayYmd, Validators.required],
+    accountId: ['', Validators.required],
+    notes: ['']
+  });
+
   private latestCdi$ = this.indicesService.latest$('cdi');
   private latestSelic$ = this.indicesService.latest$('selic');
 
@@ -100,6 +125,13 @@ export class InvestmentsPageComponent {
     map((items) => items ?? []),
     catchError(() => of([]))
   );
+
+  accounts$ = this.auth.user$.pipe(
+    switchMap((user) => (user ? this.accountsService.list$(user.uid) : of([]))),
+    map((accounts) => accounts.filter((account) => (account.type ?? 'bank') !== 'investment')),
+    catchError(() => of([] as Account[]))
+  );
+
 
   view$ = combineLatest([this.investments$, this.latestCdi$, this.latestSelic$]).pipe(
     map(([investments, cdi, selic]) => this.buildView(investments, { cdi, selic })),
@@ -151,6 +183,21 @@ export class InvestmentsPageComponent {
 
   onYieldModeChange() {
     this.form.patchValue({ compounding: this.isIndexMode ? 'daily' : 'monthly' });
+  }
+
+  onTypeChange() {
+    const type = this.form.get('type')?.value as InvestmentType;
+    if (this.editingId || type !== 'fixed_income') {
+      return;
+    }
+    if (this.hasYieldOverrides()) {
+      return;
+    }
+    this.form.patchValue({
+      yieldMode: 'cdi_percent',
+      cdiPercent: 100,
+      compounding: 'daily'
+    });
   }
 
   edit(investment: Investment) {
@@ -220,7 +267,7 @@ export class InvestmentsPageComponent {
       this.notifications.success('Salvo com sucesso.');
       this.resetForm();
     } catch (err: any) {
-      this.notifications.error('Nao foi possivel concluir. Tente novamente.');
+      this.notifications.error('Não foi possível concluir. Tente novamente.');
     } finally {
       this.saving = false;
     }
@@ -238,7 +285,7 @@ export class InvestmentsPageComponent {
         nextStatus === 'active' ? 'Investimento reativado.' : 'Investimento inativado.'
       );
     } catch (err: any) {
-      this.notifications.error('Nao foi possivel concluir. Tente novamente.');
+      this.notifications.error('Nao foi possível concluír. Tente novamente.');
     } finally {
       if (this.togglingId === investment.id) {
         this.togglingId = null;
@@ -246,10 +293,133 @@ export class InvestmentsPageComponent {
     }
   }
 
+  openDeposit(investment: InvestmentView) {
+    this.selectedInvestment = investment;
+    this.showWithdrawModal = false;
+    this.showDepositModal = true;
+    this.depositForm.reset({
+      amount: null,
+      date: this.todayYmd,
+      accountId: '',
+      notes: ''
+    });
+  }
+
+  closeDeposit() {
+    this.showDepositModal = false;
+    this.selectedInvestment = null;
+  }
+
+  openWithdraw(investment: InvestmentView) {
+    this.selectedInvestment = investment;
+    this.showDepositModal = false;
+    this.showWithdrawModal = true;
+    this.withdrawForm.reset({
+      amount: null,
+      date: this.todayYmd,
+      accountId: '',
+      notes: ''
+    });
+  }
+
+  closeWithdraw() {
+    this.showWithdrawModal = false;
+    this.selectedInvestment = null;
+  }
+
+  async confirmDeposit() {
+    if (this.depositForm.invalid) {
+      this.depositForm.markAllAsTouched();
+      this.notifications.warning('Preencha os campos obrigatórios.');
+      return;
+    }
+    const user = await firstValueFrom(this.auth.user$);
+    const investment = this.selectedInvestment;
+    if (!user || !investment?.id) {
+      return;
+    }
+    const amount = Number(this.depositForm.get('amount')?.value ?? 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.notifications.warning('Informe um valor válido.');
+      return;
+    }
+
+    this.submittingDeposit = true;
+    try {
+      const categoryId = await this.categoriesService.ensureCategory(user.uid, {
+        name: 'Investimentos',
+        type: 'expense',
+        color: '#f97316'
+      });
+      await this.investmentsService.createDeposit(user.uid, {
+        investmentId: investment.id,
+        accountId: this.depositForm.get('accountId')?.value || '',
+        amount,
+        date: this.depositForm.get('date')?.value || this.todayYmd,
+        categoryId,
+        notes: this.depositForm.get('notes')?.value || null
+      });
+      this.notifications.success('Aporte registrado com sucesso.');
+      this.closeDeposit();
+    } catch (err: any) {
+      this.notifications.error('Não foi possível concluir. Tente novamente.');
+    } finally {
+      this.submittingDeposit = false;
+    }
+  }
+
+  async confirmWithdraw() {
+    if (this.withdrawForm.invalid) {
+      this.withdrawForm.markAllAsTouched();
+      this.notifications.warning('Preencha os campos obrigatórios.');
+      return;
+    }
+    const user = await firstValueFrom(this.auth.user$);
+    const investment = this.selectedInvestment;
+    if (!user || !investment?.id) {
+      return;
+    }
+    const amount = Number(this.withdrawForm.get('amount')?.value ?? 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.notifications.warning('Informe um valor válido.');
+      return;
+    }
+
+    const estimated = Number(investment.totalEstimated ?? 0);
+    if (this.canValidateEstimated(investment) && estimated > 0) {
+      const limit = estimated * 1.02;
+      if (amount > limit) {
+        this.notifications.warning('Valor acima do estimado do investimento.');
+        return;
+      }
+    } else {
+      this.notifications.warning('Valor estimado. Verifique antes de confirmar.');
+    }
+
+    this.submittingWithdraw = true;
+    try {
+      const categoryId = await this.resolveWithdrawCategory(user.uid);
+      await this.investmentsService.createWithdraw(user.uid, {
+        investmentId: investment.id,
+        accountId: this.withdrawForm.get('accountId')?.value || '',
+        amount,
+        date: this.withdrawForm.get('date')?.value || this.todayYmd,
+        categoryId,
+        notes: this.withdrawForm.get('notes')?.value || null
+      });
+      this.notifications.success('Resgate registrado com sucesso.');
+      this.closeWithdraw();
+    } catch (err: any) {
+      this.notifications.error('Não foi possível concluir. Tente novamente.');
+    } finally {
+      this.submittingWithdraw = false;
+    }
+  }
+
   private validateForm(): string | null {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
-      return 'Preencha os campos obrigatorios.';
+      return 'Preencha os campos obrigatórios.';
     }
 
     const value = this.form.value;
@@ -355,6 +525,40 @@ export class InvestmentsPageComponent {
   private typeLabel(type: InvestmentType) {
     const found = this.typeOptions.find((item) => item.value === type);
     return found?.label ?? 'Manual';
+  }
+
+  private canValidateEstimated(investment: InvestmentView) {
+    return !investment.indexMissing && !investment.placeholderUsed;
+  }
+
+  private async resolveWithdrawCategory(uid: string): Promise<string> {
+    const categories = await firstValueFrom(this.categoriesService.list$(uid));
+    const normalized = (value: string) => value.trim().toLowerCase();
+    const incomeCategories = categories.filter((cat) => cat.type === 'income');
+    const resgates = incomeCategories.find((cat) => normalized(cat.name) === 'resgates');
+    if (resgates?.id) {
+      return resgates.id;
+    }
+    const investimentos = incomeCategories.find(
+      (cat) => normalized(cat.name) === 'investimentos'
+    );
+    if (investimentos?.id) {
+      return investimentos.id;
+    }
+    return this.categoriesService.ensureCategory(uid, {
+      name: 'Resgates',
+      type: 'income',
+      color: '#22c55e'
+    });
+  }
+
+  private hasYieldOverrides(): boolean {
+    return Boolean(
+      this.form.get('yieldMode')?.dirty ||
+        this.form.get('manualRate')?.dirty ||
+        this.form.get('cdiPercent')?.dirty ||
+        this.form.get('compounding')?.dirty
+    );
   }
 
   private toNumberOrNull(value: unknown): number | null {

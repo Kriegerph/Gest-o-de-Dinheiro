@@ -4,6 +4,10 @@ import { DailyIndex } from '../models/index.model';
 import { localDateFromYmd, toYmdFromLocalDate } from '../../../shared/utils/date.util';
 
 export type InvestmentCalculation = {
+  preAppYield: number;
+  postAppYield: number;
+  totalYield: number;
+  totalReturnPercent: number;
   initialValue: number;
   totalEstimated: number;
   yieldAfter: number;
@@ -32,35 +36,40 @@ export type IndexContext = {
 @Injectable({ providedIn: 'root' })
 export class InvestmentsCalculatorService {
   calculate(investment: Investment, context: IndexContext): InvestmentCalculation {
+    const preAppYield = this.getPreAppYield(investment);
     const initialValue = this.getInitialValue(investment);
     const start = this.getStartDate(investment);
     const end = this.getReferenceDate(context);
     const fallbackUpdatedAt = toYmdFromLocalDate(end);
 
     if (!start || initialValue <= 0) {
-      return {
+      return this.buildResult(
+        investment,
+        preAppYield,
         initialValue,
-        totalEstimated: initialValue,
-        yieldAfter: 0,
-        yieldPercent: 0,
-        updatedAt: fallbackUpdatedAt,
-        indexMissing: this.isIndexMode(investment.yieldMode),
-        placeholderUsed: false
-      };
+        initialValue,
+        0,
+        0,
+        fallbackUpdatedAt,
+        this.isIndexMode(investment.yieldMode),
+        false
+      );
     }
 
     const days = this.daysBetween(start, end);
     const months = this.monthsBetween(start, end);
     if (days <= 0) {
-      return {
+      return this.buildResult(
+        investment,
+        preAppYield,
         initialValue,
-        totalEstimated: initialValue,
-        yieldAfter: 0,
-        yieldPercent: 0,
-        updatedAt: fallbackUpdatedAt,
-        indexMissing: false,
-        placeholderUsed: false
-      };
+        initialValue,
+        0,
+        0,
+        fallbackUpdatedAt,
+        false,
+        false
+      );
     }
 
     if (investment.yieldMode === 'manual_monthly' || investment.yieldMode === 'manual_yearly') {
@@ -73,15 +82,17 @@ export class InvestmentsCalculatorService {
         months
       );
       const yieldAfter = totalEstimated - initialValue;
-      return {
+      return this.buildResult(
+        investment,
+        preAppYield,
         initialValue,
         totalEstimated,
         yieldAfter,
-        yieldPercent: initialValue > 0 ? (yieldAfter / initialValue) * 100 : 0,
-        updatedAt: fallbackUpdatedAt,
-        indexMissing: false,
-        placeholderUsed: false
-      };
+        initialValue > 0 ? (yieldAfter / initialValue) * 100 : 0,
+        fallbackUpdatedAt,
+        false,
+        false
+      );
     }
 
     const index = investment.yieldMode === 'cdi_percent' ? context.cdi : context.selic;
@@ -97,15 +108,17 @@ export class InvestmentsCalculatorService {
         months
       );
       const yieldAfter = totalEstimated - initialValue;
-      return {
+      return this.buildResult(
+        investment,
+        preAppYield,
         initialValue,
         totalEstimated,
         yieldAfter,
-        yieldPercent: initialValue > 0 ? (yieldAfter / initialValue) * 100 : 0,
-        updatedAt: index.date ?? fallbackUpdatedAt,
-        indexMissing: false,
-        placeholderUsed: false
-      };
+        initialValue > 0 ? (yieldAfter / initialValue) * 100 : 0,
+        index.date ?? fallbackUpdatedAt,
+        false,
+        false
+      );
     }
 
     const placeholderRate = Number(investment.manualRate ?? 0);
@@ -119,34 +132,51 @@ export class InvestmentsCalculatorService {
         months
       );
       const yieldAfter = totalEstimated - initialValue;
-      return {
+      return this.buildResult(
+        investment,
+        preAppYield,
         initialValue,
         totalEstimated,
         yieldAfter,
-        yieldPercent: initialValue > 0 ? (yieldAfter / initialValue) * 100 : 0,
-        updatedAt: fallbackUpdatedAt,
-        indexMissing: true,
-        placeholderUsed: true
-      };
+        initialValue > 0 ? (yieldAfter / initialValue) * 100 : 0,
+        fallbackUpdatedAt,
+        true,
+        true
+      );
     }
 
-    return {
+    return this.buildResult(
+      investment,
+      preAppYield,
       initialValue,
-      totalEstimated: initialValue,
-      yieldAfter: 0,
-      yieldPercent: 0,
-      updatedAt: null,
-      indexMissing: true,
-      placeholderUsed: false
-    };
+      initialValue,
+      0,
+      0,
+      null,
+      true,
+      false
+    );
   }
 
   summarize(investments: Investment[], context: IndexContext): InvestmentSummary {
-    const calculations = investments.map((investment) => this.calculate(investment, context));
-    const totalInvested = this.sum(investments.map((investment) => Number(investment.principalBase ?? 0)));
+    const activeInvestments = investments.filter((investment) => investment.status === 'active');
+    const calculations = activeInvestments.map((investment) => this.calculate(investment, context));
+    const totalInvested = this.sum(
+      activeInvestments.map((investment) => Number(investment.principalBase ?? 0))
+    );
     const totalEstimated = this.sum(calculations.map((calc) => calc.totalEstimated));
-    const totalYield = this.sum(calculations.map((calc) => calc.yieldAfter));
-    const totalYieldPercent = totalInvested > 0 ? (totalYield / totalInvested) * 100 : 0;
+    const totalYield = this.sum(calculations.map((calc) => calc.totalYield));
+    const totalBase = this.sum(
+      activeInvestments.map((investment) => {
+        const totalInvestedToDate = Number(investment.totalInvestedToDate ?? 0);
+        if (totalInvestedToDate > 0) {
+          return totalInvestedToDate;
+        }
+        const preAppYield = this.getPreAppYield(investment);
+        return this.getPrincipalBaseForReturn(investment, preAppYield);
+      })
+    );
+    const totalYieldPercent = totalBase > 0 ? (totalYield / totalBase) * 100 : 0;
     const updatedAt = this.pickLatestDate(calculations.map((calc) => calc.updatedAt));
     const indexMissing = calculations.some((calc) => calc.indexMissing);
 
@@ -157,14 +187,78 @@ export class InvestmentsCalculatorService {
       totalYieldPercent,
       updatedAt,
       indexMissing,
-      count: investments.length
+      count: activeInvestments.length
     };
   }
 
   private getInitialValue(investment: Investment) {
     const base = Number(investment.principalBase ?? 0);
-    const preApp = investment.hadBeforeApp ? Number(investment.preAppYield ?? 0) : 0;
+    const preApp = this.getPreAppYield(investment);
     return base + preApp;
+  }
+
+  private getPreAppYield(investment: Investment) {
+    return investment.hadBeforeApp ? Number(investment.preAppYield ?? 0) : 0;
+  }
+
+  private getPrincipalBaseForReturn(investment: Investment, preAppYield: number) {
+    if (
+      investment.hadBeforeApp &&
+      investment.currentValueAtOnboarding !== null &&
+      investment.currentValueAtOnboarding !== undefined
+    ) {
+      return Math.max(0, Number(investment.currentValueAtOnboarding) - preAppYield);
+    }
+    return Number(investment.principalBase ?? 0);
+  }
+
+  private getTotalReturnPercent(
+    investment: Investment,
+    totalYield: number,
+    principalBaseForReturn: number
+  ) {
+    const totalInvested = Number(investment.totalInvestedToDate ?? 0);
+    if (totalInvested > 0) {
+      return (totalYield / totalInvested) * 100;
+    }
+    if (principalBaseForReturn > 0) {
+      return (totalYield / principalBaseForReturn) * 100;
+    }
+    return 0;
+  }
+
+  private buildResult(
+    investment: Investment,
+    preAppYield: number,
+    initialValue: number,
+    totalEstimated: number,
+    postAppYield: number,
+    postAppYieldPercent: number,
+    updatedAt: string | null,
+    indexMissing: boolean,
+    placeholderUsed: boolean
+  ): InvestmentCalculation {
+    const totalYield = preAppYield + postAppYield;
+    const principalBaseForReturn = this.getPrincipalBaseForReturn(investment, preAppYield);
+    const totalReturnPercent = this.getTotalReturnPercent(
+      investment,
+      totalYield,
+      principalBaseForReturn
+    );
+
+    return {
+      preAppYield,
+      postAppYield,
+      totalYield,
+      totalReturnPercent,
+      initialValue,
+      totalEstimated,
+      yieldAfter: postAppYield,
+      yieldPercent: postAppYieldPercent,
+      updatedAt,
+      indexMissing,
+      placeholderUsed
+    };
   }
 
   private getStartDate(investment: Investment): Date | null {

@@ -30,7 +30,8 @@ export class AccountsService {
       map((items) =>
         (items as Account[]).map((item) => ({
           ...item,
-          initialBalance: Number(item.initialBalance ?? 0)
+          initialBalance: Number(item.initialBalance ?? 0),
+          type: item.type ?? 'bank'
         }))
       )
     );
@@ -40,6 +41,7 @@ export class AccountsService {
     const ref = collection(this.firestore, `users/${uid}/accounts`);
     await addDoc(ref, {
       ...data,
+      type: data.type ?? 'bank',
       initialBalance: Number(data.initialBalance ?? 0),
       createdAt: serverTimestamp()
     });

@@ -98,8 +98,12 @@ export class CreditComponent implements OnInit, OnDestroy {
     name: this.fb.control<string>('', { validators: [Validators.required, Validators.minLength(2)] }),
     brand: this.fb.control<string>('', { nonNullable: true }),
     limit: this.fb.control<number | null>(null, { validators: [Validators.min(0)] }),
-    closingDay: [null as number | null],
-    dueDay: [null as number | null],
+    closingDay: this.fb.control<number | null>(null, {
+      validators: [Validators.min(1), Validators.max(28)]
+    }),
+    dueDay: this.fb.control<number | null>(null, {
+      validators: [Validators.required, Validators.min(1), Validators.max(28)]
+    }),
     paymentAccountId: this.fb.control<string>('', { validators: [Validators.required] }),
   });
 

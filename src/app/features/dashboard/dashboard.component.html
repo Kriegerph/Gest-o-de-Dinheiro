@@ -23,12 +23,15 @@
             {{ view.investments.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
           </div>
           <div class="kpi-sub">
-            Rendimento apos cadastro:
+            Rendimento total:
             {{
-              view.investments.yieldAfter === null
+              view.investments.totalYield === null
                 ? '-'
-                : (view.investments.yieldAfter | currency:'BRL':'symbol':'1.2-2':'pt-BR')
+                : (view.investments.totalYield | currency:'BRL':'symbol':'1.2-2':'pt-BR')
             }}
+            <span *ngIf="view.investments.totalYieldPercent !== null">
+              ({{ view.investments.totalYieldPercent | number:'1.0-2' }}%)
+            </span>
           </div>
         </div>
         <div class="glass-card kpi-card kpi-center">

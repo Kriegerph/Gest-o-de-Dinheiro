@@ -71,4 +71,29 @@ export class CategoriesService {
       return;
     }
   }
+
+  async ensureCategory(
+    uid: string,
+    input: { name: string; type: Category['type']; color?: string }
+  ): Promise<string> {
+    const ref = collection(this.firestore, `users/${uid}/categories`);
+    const q = query(
+      ref,
+      where('name', '==', input.name),
+      where('type', '==', input.type),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      return snap.docs[0].id;
+    }
+
+    const docRef = await addDoc(ref, {
+      name: input.name,
+      type: input.type,
+      color: input.color ?? '#94a3b8',
+      createdAt: serverTimestamp()
+    });
+    return docRef.id;
+  }
 }

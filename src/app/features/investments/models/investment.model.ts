@@ -1,4 +1,4 @@
-export type InvestmentType = 'savings' | 'cdb' | 'treasury_selic' | 'manual';
+export type InvestmentType = 'fixed_income' | 'savings' | 'cdb' | 'treasury_selic' | 'manual';
 export type InvestmentStatus = 'active' | 'inactive';
 export type InvestmentYieldMode = 'manual_monthly' | 'manual_yearly' | 'cdi_percent' | 'selic';
 export type InvestmentCompounding = 'daily' | 'monthly';

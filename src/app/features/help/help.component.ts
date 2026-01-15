@@ -36,6 +36,7 @@ export class HelpComponent {
   readonly quickLinks: QuickLink[] = [
     { label: 'Ir para Lançamentos', path: '/app/transactions' },
     { label: 'Ir para Contas', path: '/app/accounts' },
+    { label: 'Ir para Investimentos', path: '/app/investments' },
     { label: 'Ir para Relatórios', path: '/app/reports' }
   ];
 
@@ -182,6 +183,36 @@ export class HelpComponent {
         'O vencimento da parcela não muda quando ela é paga antecipadamente.',
         'A data do lançamento é a data do pagamento (dia em que a parcela foi marcada como paga).',
         'Exemplo: parcela com vencimento em 29/01 paga antecipadamente em 13/01 aparecerá como "Paga em 13/01" e o lançamento será registrado em 13/01.'
+      ]
+    },
+    {
+      id: 'investimentos',
+      title: 'Investimentos',
+      summary:
+        'A aba Investimentos serve para acompanhar o dinheiro que você aplicou com foco em rendimento e planejamento de longo prazo.',
+      what:
+        'O que são Investimentos? A aba Investimentos serve para acompanhar o dinheiro que você aplicou com foco em rendimento e planejamento de longo prazo. Os valores investidos não fazem parte do saldo da sua conta, pois não estão disponíveis para uso imediato. Eles fazem parte do seu patrimônio investido.',
+      how: [
+        'Aportar valor: A opção Aportar permite adicionar mais dinheiro a um investimento.',
+        'Ao fazer um aporte: o valor sai de uma conta escolhida por você, é registrado como um lançamento de saída e o investimento passa a considerar o novo valor aplicado.',
+        'Resgatar valor: A opção Resgatar permite retirar dinheiro de um investimento.',
+        'Ao fazer um resgate: o valor entra em uma conta escolhida por você, é registrado como um lançamento de receita e o investimento passa a considerar o valor restante.',
+        'Atualização dos valores: Os valores exibidos são estimativas, baseadas nas regras de rendimento configuradas.',
+        'Não utilizamos atualização em tempo real de mercado.',
+        'Sempre que possível, a data da última atualização é exibida para maior transparência.',
+      ],
+      tips: [
+        'Tipos de investimento: Você pode cadastrar diferentes tipos de investimentos, como:',
+        'Renda fixa (ex.: Caixinha Nubank, CDB, Tesouro Selic).',
+        'Outros investimentos com rendimento manual.',
+        'O tipo ajuda na organização e na forma como o rendimento é calculado.',
+      ],
+      notes: [
+        'Investimentos existentes antes do app: Se você já investia antes de usar o aplicativo, é possível informar o valor atual do investimento e quanto ele já rendeu até o momento.',
+        'Esses dados servem apenas para alinhar o histórico.',
+        'O aplicativo não recalcula rendimentos passados; ele apenas acompanha o investimento a partir do cadastro.',
+        'Rendimento e rentabilidade: O rendimento exibido pode incluir rendimento anterior ao uso do app e rendimento calculado após o cadastro.',
+        'A rentabilidade (%) representa o ganho em relação ao valor investido e pode ser uma estimativa, dependendo do tipo de investimento.',
       ]
     },
     {

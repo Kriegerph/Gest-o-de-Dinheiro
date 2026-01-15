@@ -5,6 +5,7 @@ import {
   collection,
   collectionData,
   doc,
+  runTransaction,
   orderBy,
   query,
   serverTimestamp,
@@ -39,6 +40,102 @@ export class InvestmentsService {
   async update(uid: string, id: string, data: Partial<Investment>): Promise<void> {
     const ref = doc(this.firestore, `users/${uid}/investments/${id}`);
     await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+  }
+
+  async createDeposit(
+    uid: string,
+    input: {
+      investmentId: string;
+      accountId: string;
+      amount: number;
+      date: string;
+      categoryId: string | null;
+      notes?: string | null;
+    }
+  ): Promise<void> {
+    const investmentRef = doc(this.firestore, `users/${uid}/investments/${input.investmentId}`);
+    await runTransaction(this.firestore, async (tx) => {
+      const investmentSnap = await tx.get(investmentRef);
+      if (!investmentSnap.exists()) {
+        throw new Error('Investimento nao encontrado.');
+      }
+      const investment = investmentSnap.data() as Investment;
+      const principalBase = Number(investment.principalBase ?? 0);
+      const nextBase = principalBase + Number(input.amount ?? 0);
+      if (!Number.isFinite(nextBase)) {
+        throw new Error('Valor invalido.');
+      }
+
+      const txRef = doc(collection(this.firestore, `users/${uid}/transactions`));
+      tx.set(txRef, {
+        type: 'expense',
+        description: `Aporte em investimento: ${investment.name}`,
+        amount: Number(input.amount ?? 0),
+        date: input.date,
+        categoryId: input.categoryId,
+        accountId: input.accountId,
+        accountOriginId: null,
+        accountDestinationId: null,
+        notes: input.notes || null,
+        investmentId: input.investmentId,
+        investmentAction: 'deposit',
+        source: 'investment_movement',
+        createdAt: serverTimestamp()
+      });
+
+      tx.update(investmentRef, {
+        principalBase: nextBase,
+        updatedAt: serverTimestamp()
+      });
+    });
+  }
+
+  async createWithdraw(
+    uid: string,
+    input: {
+      investmentId: string;
+      accountId: string;
+      amount: number;
+      date: string;
+      categoryId: string | null;
+      notes?: string | null;
+    }
+  ): Promise<void> {
+    const investmentRef = doc(this.firestore, `users/${uid}/investments/${input.investmentId}`);
+    await runTransaction(this.firestore, async (tx) => {
+      const investmentSnap = await tx.get(investmentRef);
+      if (!investmentSnap.exists()) {
+        throw new Error('Investimento não encontrado.');
+      }
+      const investment = investmentSnap.data() as Investment;
+      const principalBase = Number(investment.principalBase ?? 0);
+      const nextBase = Math.max(0, principalBase - Number(input.amount ?? 0));
+      if (!Number.isFinite(nextBase)) {
+        throw new Error('Valor inválido.');
+      }
+
+      const txRef = doc(collection(this.firestore, `users/${uid}/transactions`));
+      tx.set(txRef, {
+        type: 'income',
+        description: `Resgate de investimento: ${investment.name}`,
+        amount: Number(input.amount ?? 0),
+        date: input.date,
+        categoryId: input.categoryId,
+        accountId: input.accountId,
+        accountOriginId: null,
+        accountDestinationId: null,
+        notes: input.notes || null,
+        investmentId: input.investmentId,
+        investmentAction: 'withdraw',
+        source: 'investment_movement',
+        createdAt: serverTimestamp()
+      });
+
+      tx.update(investmentRef, {
+        principalBase: nextBase,
+        updatedAt: serverTimestamp()
+      });
+    });
   }
 
   private normalize(item: Investment): Investment {

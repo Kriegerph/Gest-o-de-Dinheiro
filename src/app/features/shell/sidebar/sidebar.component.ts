@@ -17,6 +17,7 @@ export class SidebarComponent {
     { label: 'Dashboard', icon: 'bi-speedometer2', path: '/app/dashboard' },
     { label: 'Lançamentos', icon: 'bi-arrow-left-right', path: '/app/transactions' },
     { label: 'Contas', icon: 'bi-wallet2', path: '/app/accounts' },
+    { label: 'Investimentos', icon: 'bi-graph-up-arrow', path: '/app/investments' },
     { label: 'Categorias', icon: 'bi-collection', path: '/app/categories' },
     { label: 'Metas', icon: 'bi-bullseye', path: '/app/budgets' },
     { label: 'Relatórios', icon: 'bi-graph-up', path: '/app/reports' },

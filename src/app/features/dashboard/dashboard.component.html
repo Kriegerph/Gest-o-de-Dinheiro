@@ -15,7 +15,21 @@
         <div class="glass-card kpi-card kpi-center">
           <div class="kpi-label">Saldo total</div>
           <div class="kpi-value">{{ view.kpis.totalBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
-          <div class="kpi-sub">Somatório das contas</div>
+          <div class="kpi-sub">Somatório das contas (sem investimentos)</div>
+        </div>
+        <div class="glass-card kpi-card kpi-center">
+          <div class="kpi-label">Patrimonio investido</div>
+          <div class="kpi-value">
+            {{ view.investments.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+          </div>
+          <div class="kpi-sub">
+            Rendimento apos cadastro:
+            {{
+              view.investments.yieldAfter === null
+                ? '-'
+                : (view.investments.yieldAfter | currency:'BRL':'symbol':'1.2-2':'pt-BR')
+            }}
+          </div>
         </div>
         <div class="glass-card kpi-card kpi-center">
           <div class="kpi-label">Receitas do mês</div>

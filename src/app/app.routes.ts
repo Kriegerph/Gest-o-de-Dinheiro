@@ -41,6 +41,11 @@ export const routes: Routes = [
       { path: 'budgets', component: BudgetsComponent },
       { path: 'reports', component: ReportsComponent },
       { path: 'credit', component: CreditComponent },
+      {
+        path: 'investments',
+        loadChildren: () =>
+          import('./features/investments/investments.routes').then((m) => m.INVESTMENTS_ROUTES)
+      },
       { path: 'ajuda', component: HelpComponent },
       { path: 'settings', component: SettingsComponent },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' }

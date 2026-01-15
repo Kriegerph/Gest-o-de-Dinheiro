@@ -8,6 +8,9 @@ import { AccountsService } from '../../core/services/accounts.service';
 import { CategoriesService } from '../../core/services/categories.service';
 import { BudgetsService } from '../../core/services/budgets.service';
 import { CreditService } from '../credit/credit.service';
+import { InvestmentsService } from '../investments/services/investments.service';
+import { InvestmentsCalculatorService } from '../investments/services/investments-calculator.service';
+import { IndicesService } from '../investments/services/indices.service';
 import { Transaction } from '../../core/models/transaction.model';
 import { Account } from '../../core/models/account.model';
 import { Category } from '../../core/models/category.model';
@@ -163,10 +166,17 @@ type AccountSummaryView = {
   diffPercent: number | null;
 };
 
+type InvestmentSummary = {
+  totalEstimated: number;
+  yieldAfter: number | null;
+  updatedAt: string | null;
+};
+
 type DashboardView = {
   monthLabel: string;
   kpis: KpiState;
   alerts: AlertItem[];
+  investments: InvestmentSummary;
   charts: {
     dailyBalance: LineChart;
     categoryDonut: DonutChart;
@@ -197,6 +207,9 @@ export class DashboardComponent {
   private categoriesService = inject(CategoriesService);
   private budgetsService = inject(BudgetsService);
   private creditService = inject(CreditService);
+  private investmentsService = inject(InvestmentsService);
+  private indicesService = inject(IndicesService);
+  private investmentsCalculator = inject(InvestmentsCalculatorService);
 
   readonly now = new Date();
   readonly month = this.now.getMonth() + 1;
@@ -329,6 +342,14 @@ export class DashboardComponent {
     catchError(() => of([]))
   );
 
+  investments$ = this.auth.user$.pipe(
+    switchMap((user) => (user ? this.investmentsService.list$(user.uid) : of([]))),
+    catchError(() => of([]))
+  );
+
+  latestCdi$ = this.indicesService.latest$('cdi');
+  latestSelic$ = this.indicesService.latest$('selic');
+
   view$ = combineLatest([
     this.accounts$,
     this.transactions$,
@@ -337,7 +358,10 @@ export class DashboardComponent {
     this.budgets$,
     this.creditCards$,
     this.creditInstallments$,
-    this.recentTransactions$
+    this.recentTransactions$,
+    this.investments$,
+    this.latestCdi$,
+    this.latestSelic$
   ]).pipe(
     map(
       ([
@@ -348,9 +372,20 @@ export class DashboardComponent {
         budgets,
         creditCards,
         creditInstallments,
-        recentTransactions
+        recentTransactions,
+        investments,
+        latestCdi,
+        latestSelic
       ]) => {
-        const accountsWithBalance = this.buildAccountBalances(accounts, allTransactions);
+        const cashAccounts = accounts.filter(
+          (account) => (account.type ?? 'bank') !== 'investment'
+        );
+        const accountsWithBalance = this.buildAccountBalances(cashAccounts, allTransactions);
+        const investmentsSummary = this.investmentsCalculator.summarize(investments, {
+          cdi: latestCdi,
+          selic: latestSelic
+        });
+        const hasInvestments = investmentsSummary.count > 0;
         const accountMap = new Map(accounts.map((acc) => [acc.id || '', acc]));
         const categoryMap = new Map(categories.map((cat) => [cat.id || '', cat]));
         const cardMap = new Map(creditCards.map((card) => [card.id || '', card]));
@@ -618,6 +653,11 @@ export class DashboardComponent {
           monthLabel: `${this.month}/${this.year}`,
           kpis,
           alerts: alerts.slice(0, 6),
+          investments: {
+            totalEstimated: hasInvestments ? investmentsSummary.totalEstimated : 0,
+            yieldAfter: hasInvestments ? investmentsSummary.totalYield : null,
+            updatedAt: hasInvestments ? investmentsSummary.updatedAt : null
+          },
           charts: {
             dailyBalance,
             categoryDonut,
@@ -678,6 +718,11 @@ export class DashboardComponent {
         upcoming15: null
       },
       alerts: [],
+      investments: {
+        totalEstimated: 0,
+        yieldAfter: null,
+        updatedAt: null
+      },
       charts: {
         dailyBalance: this.emptyLineChart(),
         categoryDonut: { total: 0, gradient: '', slices: [], empty: true },

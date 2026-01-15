@@ -1,0 +1,275 @@
+<div class="row g-3 investments-page">
+  <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <p class="text-uppercase text-primary small mb-1">Patrimonio</p>
+      <h3 class="fw-bold mb-0">Investimentos</h3>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-light" type="button" (click)="resetForm()" *ngIf="editingId">
+        Cancelar edicao
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="view$ | async as view; else loadingTpl">
+    <div class="col-12">
+      <div class="summary-grid">
+        <div class="glass-card summary-card">
+          <div class="summary-label">Total investido</div>
+          <div class="summary-value">
+            {{ view.summary.totalInvested | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+          </div>
+          <div class="summary-sub">Capital aplicado</div>
+        </div>
+        <div class="glass-card summary-card">
+          <div class="summary-label">Total atual estimado</div>
+          <div class="summary-value">
+            {{ view.summary.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+          </div>
+          <div class="summary-sub">Capital + rendimentos</div>
+        </div>
+        <div class="glass-card summary-card">
+          <div class="summary-label">Rendimento</div>
+          <div class="summary-value">
+            {{ view.summary.totalYield | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+          </div>
+          <div class="summary-sub">
+            Rentabilidade: {{ view.summary.totalYieldPercent | number:'1.0-2' }}%
+          </div>
+        </div>
+        <div class="glass-card summary-card">
+          <div class="summary-label">Atualizado em</div>
+          <div class="summary-value">{{ view.summary.updatedLabel }}</div>
+          <div class="summary-tag">Estimado</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12" *ngIf="view.summary.indexMissing">
+      <div class="glass-card p-3 text-warning">
+        Sem indice atualizado para investimentos indexados.
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card p-3 h-100">
+        <h6 class="fw-semibold mb-3">{{ editingId ? 'Editar investimento' : 'Novo investimento' }}</h6>
+        <form [formGroup]="form" class="d-grid gap-3" (ngSubmit)="save()">
+          <div>
+            <label class="form-label text-secondary">Nome</label>
+            <input class="form-control glass-input" formControlName="name" placeholder="Ex: Reserva" />
+          </div>
+          <div>
+            <label class="form-label text-secondary">Tipo</label>
+            <select class="form-select" formControlName="type">
+              <option *ngFor="let option of typeOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label text-secondary">Data de inicio real</label>
+              <input type="date" class="form-control glass-input" formControlName="realStartDate" />
+            </div>
+            <div class="col-6">
+              <label class="form-label text-secondary">Status</label>
+              <select class="form-select" formControlName="status">
+                <option *ngFor="let option of statusOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="investment-before-app"
+              formControlName="hadBeforeApp" (change)="onBeforeAppToggle()" />
+            <label class="form-check-label" for="investment-before-app">
+              Investimento ja existia antes do app?
+            </label>
+          </div>
+
+          <div *ngIf="!isBeforeApp">
+            <label class="form-label text-secondary">Valor aplicado inicial</label>
+            <input type="number" class="form-control glass-input" formControlName="principalBase" step="0.01"
+              placeholder="Ex: 5000.00" />
+          </div>
+
+          <div *ngIf="isBeforeApp" class="d-grid gap-2">
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label text-secondary">Data de alinhamento</label>
+                <input type="date" class="form-control glass-input" formControlName="systemStartDate" />
+              </div>
+              <div class="col-6">
+                <label class="form-label text-secondary">Valor atual</label>
+                <input type="number" class="form-control glass-input" formControlName="currentValueAtOnboarding"
+                  step="0.01" placeholder="Ex: 12000.00" />
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label text-secondary">Total investido ate hoje</label>
+                <input type="number" class="form-control glass-input" formControlName="totalInvestedToDate"
+                  step="0.01" placeholder="Opcional" />
+              </div>
+              <div class="col-6">
+                <label class="form-label text-secondary">Rendimento acumulado ate hoje</label>
+                <input type="number" class="form-control glass-input" formControlName="preAppYield" step="0.01"
+                  placeholder="Opcional" />
+              </div>
+            </div>
+            <small class="text-secondary">
+              Valores anteriores ao app servem para alinhar seu historico. O app nao recalcula o passado.
+            </small>
+          </div>
+
+          <div>
+            <label class="form-label text-secondary">Regra de rendimento</label>
+            <select class="form-select" formControlName="yieldMode" (change)="onYieldModeChange()">
+              <option *ngFor="let option of yieldOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+
+          <div class="row g-2" *ngIf="isManualMode">
+            <div class="col-6">
+              <label class="form-label text-secondary">{{ manualRateLabel }}</label>
+              <input type="number" class="form-control glass-input" formControlName="manualRate" step="0.01"
+                placeholder="Ex: 1.2" />
+            </div>
+          </div>
+          <div class="row g-2" *ngIf="isIndexMode">
+            <div class="col-6" *ngIf="yieldMode === 'cdi_percent'">
+              <label class="form-label text-secondary">% do CDI</label>
+              <input type="number" class="form-control glass-input" formControlName="cdiPercent" step="0.01"
+                placeholder="Ex: 100" />
+            </div>
+            <div [class.col-6]="yieldMode === 'cdi_percent'" [class.col-12]="yieldMode !== 'cdi_percent'">
+              <label class="form-label text-secondary">Taxa placeholder (a.m.)</label>
+              <input type="number" class="form-control glass-input" formControlName="manualRate" step="0.01"
+                placeholder="Opcional" />
+            </div>
+          </div>
+          <div class="row g-2">
+            <div [class.col-6]="isManualMode" [class.col-12]="isIndexMode">
+              <label class="form-label text-secondary">Capitalizacao</label>
+              <select class="form-select" formControlName="compounding">
+                <option value="monthly">Mensal</option>
+                <option value="daily">Diaria</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="saving">
+              <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
+              {{ saving ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Adicionar' }}
+            </button>
+            <button class="btn btn-outline-light" type="button" (click)="resetForm()">Limpar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="glass-card p-3 h-100">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle table-sm app-table investments-table">
+            <thead>
+              <tr class="text-secondary">
+                <th>Investimento</th>
+                <th class="text-end">Base</th>
+                <th class="text-end">Atual estimado</th>
+                <th class="text-end">Rendimento</th>
+                <th>Status</th>
+                <th class="text-end">Acoes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngIf="view.items.length > 0; else emptyInvestmentsTpl">
+                <tr *ngFor="let item of view.items; trackBy: trackById">
+                  <td>
+                    <div class="fw-semibold">{{ item.name }}</div>
+                    <div class="text-secondary small">{{ item.typeLabel }}</div>
+                    <div class="text-secondary small" *ngIf="item.hadBeforeApp">
+                      Rendimento pre-app: {{ item.preAppYield | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </div>
+                  </td>
+                  <td class="text-end">
+                    <div class="fw-semibold">
+                      {{ item.principalBase | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </div>
+                    <div class="text-secondary small">Base no sistema</div>
+                  </td>
+                  <td class="text-end">
+                    <div class="fw-semibold">
+                      {{ item.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </div>
+                    <div class="text-secondary small">Estimado</div>
+                    <div class="text-warning small" *ngIf="item.indexMissing">
+                      Sem indice atualizado
+                    </div>
+                    <div class="text-secondary small" *ngIf="item.placeholderUsed">
+                      Taxa placeholder aplicada
+                    </div>
+                    <div class="text-secondary small">Atualizado em {{ item.updatedLabel }}</div>
+                  </td>
+                  <td class="text-end">
+                    <div class="fw-semibold" [class.text-success]="item.yieldAfter >= 0"
+                      [class.text-danger]="item.yieldAfter < 0">
+                      {{ item.yieldAfter | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </div>
+                    <div class="text-secondary small">{{ item.yieldPercent | number:'1.0-2' }}%</div>
+                  </td>
+                  <td>
+                    <span class="badge" [ngClass]="{
+                      'bg-success-subtle text-success': item.status === 'active',
+                      'bg-secondary-subtle text-secondary': item.status === 'inactive'
+                    }">
+                      {{ item.statusLabel }}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-outline-light me-2" type="button" (click)="edit(item)">
+                      <i class="bi bi-pencil me-1"></i>
+                      Editar
+                    </button>
+                    <button class="btn btn-sm btn-outline-light" type="button" (click)="toggleStatus(item)"
+                      [disabled]="togglingId === item.id">
+                      <span *ngIf="togglingId === item.id" class="spinner-border spinner-border-sm me-1"></span>
+                      {{ item.status === 'active' ? 'Inativar' : 'Ativar' }}
+                    </button>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+            <ng-template #emptyInvestmentsTpl>
+              <tr>
+                <td colspan="6">
+                  <div class="empty-state">
+                    <div>Nenhum investimento cadastrado.</div>
+                    <button class="btn btn-sm btn-primary" type="button" (click)="resetForm()">
+                      Novo investimento
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #loadingTpl>
+    <div class="col-12">
+      <div class="glass-card p-3">
+        <div class="skeleton skeleton-line w-50 mb-2"></div>
+        <div class="skeleton skeleton-line w-75"></div>
+      </div>
+    </div>
+    <div class="col-12" *ngFor="let _ of skeletonRows">
+      <div class="glass-card p-3">
+        <div class="skeleton skeleton-line w-50 mb-2"></div>
+        <div class="skeleton skeleton-line w-75"></div>
+      </div>
+    </div>
+  </ng-template>
+</div>

@@ -27,6 +27,14 @@ export type InvestmentSummary = {
   count: number;
 };
 
+export type RescueIrEstimate = {
+  grossAmount: number;
+  profitPortion: number;
+  irRate: number;
+  irValue: number;
+  netAmount: number;
+};
+
 export type IndexContext = {
   cdi: DailyIndex | null;
   selic: DailyIndex | null;
@@ -191,6 +199,41 @@ export class InvestmentsCalculatorService {
     };
   }
 
+  calculateRescueIR(params: {
+    principalBase: number;
+    currentValue: number;
+    rescueAmount: number;
+    investmentStartDate: string | Date | null;
+    referenceDate?: Date;
+  }): RescueIrEstimate {
+    const grossAmount = Math.max(0, Number(params.rescueAmount ?? 0));
+    const currentValue = Math.max(0, Number(params.currentValue ?? 0));
+    const principalBase = Math.max(0, Number(params.principalBase ?? 0));
+    const totalProfit = Math.max(currentValue - principalBase, 0);
+    const ratio =
+      currentValue > 0 ? Math.min(Math.max(grossAmount / currentValue, 0), 1) : 0;
+    const profitPortion = totalProfit > 0 ? totalProfit * ratio : 0;
+    const startDate =
+      typeof params.investmentStartDate === 'string'
+        ? localDateFromYmd(params.investmentStartDate)
+        : params.investmentStartDate instanceof Date
+          ? params.investmentStartDate
+          : null;
+    const referenceDate = params.referenceDate ? new Date(params.referenceDate) : new Date();
+    const days = startDate ? this.daysBetween(startDate, referenceDate) : 0;
+    const irRate = totalProfit > 0 ? this.resolveIrRate(days) : 0;
+    const irValue = Math.max(0, profitPortion * irRate);
+    const netAmount = Math.max(0, grossAmount - irValue);
+
+    return {
+      grossAmount,
+      profitPortion,
+      irRate,
+      irValue,
+      netAmount
+    };
+  }
+
   private getInitialValue(investment: Investment) {
     const base = Number(investment.principalBase ?? 0);
     const preApp = this.getPreAppYield(investment);
@@ -335,6 +378,20 @@ export class InvestmentsCalculatorService {
       months -= 1;
     }
     return Math.max(0, months);
+  }
+
+  private resolveIrRate(days: number) {
+    const safeDays = Math.max(0, Math.floor(days));
+    if (safeDays <= 180) {
+      return 0.225;
+    }
+    if (safeDays <= 360) {
+      return 0.2;
+    }
+    if (safeDays <= 720) {
+      return 0.175;
+    }
+    return 0.15;
   }
 
   private sum(values: number[]): number {

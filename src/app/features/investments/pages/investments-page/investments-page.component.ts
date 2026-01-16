@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { catchError, combineLatest, firstValueFrom, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AccountsService } from '../../../../core/services/accounts.service';
@@ -10,7 +11,8 @@ import {
   IndexContext,
   InvestmentCalculation,
   InvestmentSummary,
-  InvestmentsCalculatorService
+  InvestmentsCalculatorService,
+  RescueIrEstimate
 } from '../../services/investments-calculator.service';
 import { IndicesService } from '../../services/indices.service';
 import {
@@ -38,7 +40,7 @@ type InvestmentsPageView = {
 @Component({
   selector: 'app-investments-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './investments-page.component.html',
   styleUrl: './investments-page.component.css'
 })
@@ -95,9 +97,9 @@ export class InvestmentsPageComponent {
     currentValueAtOnboarding: [null as number | null],
     totalInvestedToDate: [null as number | null],
     preAppYield: [null as number | null],
-    principalBase: [0, [Validators.min(0)]],
+    principalBase: [null as number | null, [Validators.min(0)]],
     yieldMode: ['manual_monthly', Validators.required],
-    manualRate: [0],
+    manualRate: [null as number | null],
     cdiPercent: [100],
     compounding: ['monthly']
   });
@@ -106,14 +108,17 @@ export class InvestmentsPageComponent {
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
     date: [this.todayYmd, Validators.required],
     accountId: ['', Validators.required],
-    notes: ['']
+    notes: [''],
+    isHistorical: [false]
   });
 
   withdrawForm = this.fb.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
     date: [this.todayYmd, Validators.required],
     accountId: ['', Validators.required],
-    notes: ['']
+    notes: [''],
+    isHistorical: [false],
+    applyIr: [true]
   });
 
   private latestCdi$ = this.indicesService.latest$('cdi');
@@ -215,9 +220,9 @@ export class InvestmentsPageComponent {
       currentValueAtOnboarding: currentValue,
       totalInvestedToDate: investment.totalInvestedToDate ?? null,
       preAppYield: investment.preAppYield ?? null,
-      principalBase: investment.principalBase ?? 0,
+      principalBase: investment.principalBase ?? null,
       yieldMode: investment.yieldMode,
-      manualRate: investment.manualRate ?? 0,
+      manualRate: investment.manualRate ?? null,
       cdiPercent: investment.cdiPercent ?? 100,
       compounding:
         investment.compounding ??
@@ -239,9 +244,9 @@ export class InvestmentsPageComponent {
       currentValueAtOnboarding: null,
       totalInvestedToDate: null,
       preAppYield: null,
-      principalBase: 0,
+      principalBase: null,
       yieldMode: 'manual_monthly',
-      manualRate: 0,
+      manualRate: null,
       cdiPercent: 100,
       compounding: 'monthly'
     });
@@ -301,8 +306,10 @@ export class InvestmentsPageComponent {
       amount: null,
       date: this.todayYmd,
       accountId: '',
-      notes: ''
+      notes: '',
+      isHistorical: false
     });
+    this.updateHistoricalState(this.depositForm, investment);
   }
 
   closeDeposit() {
@@ -318,13 +325,52 @@ export class InvestmentsPageComponent {
       amount: null,
       date: this.todayYmd,
       accountId: '',
-      notes: ''
+      notes: '',
+      isHistorical: false,
+      applyIr: true
     });
+    this.updateHistoricalState(this.withdrawForm, investment);
   }
 
   closeWithdraw() {
     this.showWithdrawModal = false;
     this.selectedInvestment = null;
+  }
+
+  onDepositHistoricalToggle() {
+    this.updateHistoricalState(this.depositForm, this.selectedInvestment);
+  }
+
+  onWithdrawHistoricalToggle() {
+    this.updateHistoricalState(this.withdrawForm, this.selectedInvestment);
+  }
+
+  get withdrawIrEstimate(): RescueIrEstimate | null {
+    const investment = this.selectedInvestment;
+    if (!investment) {
+      return null;
+    }
+    if (Boolean(this.withdrawForm.get('isHistorical')?.value)) {
+      return null;
+    }
+    if (!Boolean(this.withdrawForm.get('applyIr')?.value)) {
+      return null;
+    }
+    const amount = Number(this.withdrawForm.get('amount')?.value ?? 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return null;
+    }
+    const currentValue = Number(investment.totalEstimated ?? 0);
+    if (!Number.isFinite(currentValue) || currentValue <= 0) {
+      return null;
+    }
+    const startDate = investment.realStartDate || investment.systemStartDate || '';
+    return this.calculator.calculateRescueIR({
+      principalBase: Number(investment.principalBase ?? 0),
+      currentValue,
+      rescueAmount: amount,
+      investmentStartDate: startDate
+    });
   }
 
   async confirmDeposit() {
@@ -338,26 +384,38 @@ export class InvestmentsPageComponent {
     if (!user || !investment?.id) {
       return;
     }
+    const isHistorical = Boolean(this.depositForm.get('isHistorical')?.value);
     const amount = Number(this.depositForm.get('amount')?.value ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) {
       this.notifications.warning('Informe um valor válido.');
       return;
     }
+    const dateValue = this.depositForm.get('date')?.value || this.todayYmd;
+    if (isHistorical) {
+      const validationMessage = this.validateHistoricalDate(dateValue, investment);
+      if (validationMessage) {
+        this.notifications.warning(validationMessage);
+        return;
+      }
+    }
 
     this.submittingDeposit = true;
     try {
-      const categoryId = await this.categoriesService.ensureCategory(user.uid, {
-        name: 'Investimentos',
-        type: 'expense',
-        color: '#f97316'
-      });
+      const categoryId = isHistorical
+        ? null
+        : await this.categoriesService.ensureCategory(user.uid, {
+            name: 'Investimentos',
+            type: 'expense',
+            color: '#f97316'
+          });
       await this.investmentsService.createDeposit(user.uid, {
         investmentId: investment.id,
-        accountId: this.depositForm.get('accountId')?.value || '',
+        accountId: this.depositForm.get('accountId')?.value || null,
         amount,
-        date: this.depositForm.get('date')?.value || this.todayYmd,
+        date: dateValue,
         categoryId,
-        notes: this.depositForm.get('notes')?.value || null
+        notes: this.depositForm.get('notes')?.value || null,
+        isHistorical
       });
       this.notifications.success('Aporte registrado com sucesso.');
       this.closeDeposit();
@@ -379,33 +437,46 @@ export class InvestmentsPageComponent {
     if (!user || !investment?.id) {
       return;
     }
+    const isHistorical = Boolean(this.withdrawForm.get('isHistorical')?.value);
+    const applyIr = Boolean(this.withdrawForm.get('applyIr')?.value);
     const amount = Number(this.withdrawForm.get('amount')?.value ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) {
       this.notifications.warning('Informe um valor válido.');
       return;
     }
-
-    const estimated = Number(investment.totalEstimated ?? 0);
-    if (this.canValidateEstimated(investment) && estimated > 0) {
-      const limit = estimated * 1.02;
-      if (amount > limit) {
-        this.notifications.warning('Valor acima do estimado do investimento.');
+    const dateValue = this.withdrawForm.get('date')?.value || this.todayYmd;
+    if (isHistorical) {
+      const validationMessage = this.validateHistoricalDate(dateValue, investment);
+      if (validationMessage) {
+        this.notifications.warning(validationMessage);
         return;
       }
     } else {
-      this.notifications.warning('Valor estimado. Verifique antes de confirmar.');
+      const estimated = Number(investment.totalEstimated ?? 0);
+      if (this.canValidateEstimated(investment) && estimated > 0) {
+        const limit = estimated * 1.02;
+        if (amount > limit) {
+          this.notifications.warning('Valor acima do estimado do investimento.');
+          return;
+        }
+      } else {
+        this.notifications.warning('Valor estimado. Verifique antes de confirmar.');
+      }
     }
 
     this.submittingWithdraw = true;
     try {
-      const categoryId = await this.resolveWithdrawCategory(user.uid);
+      const categoryId = isHistorical ? null : await this.resolveWithdrawCategory(user.uid);
       await this.investmentsService.createWithdraw(user.uid, {
         investmentId: investment.id,
-        accountId: this.withdrawForm.get('accountId')?.value || '',
+        accountId: this.withdrawForm.get('accountId')?.value || null,
         amount,
-        date: this.withdrawForm.get('date')?.value || this.todayYmd,
+        date: dateValue,
         categoryId,
-        notes: this.withdrawForm.get('notes')?.value || null
+        notes: this.withdrawForm.get('notes')?.value || null,
+        isHistorical,
+        applyIr: !isHistorical && applyIr,
+        currentValue: Number(investment.totalEstimated ?? 0)
       });
       this.notifications.success('Resgate registrado com sucesso.');
       this.closeWithdraw();
@@ -414,6 +485,50 @@ export class InvestmentsPageComponent {
     } finally {
       this.submittingWithdraw = false;
     }
+  }
+
+  private updateHistoricalState(form: FormGroup, investment: InvestmentView | null) {
+    const isHistorical = Boolean(form.get('isHistorical')?.value);
+    const accountControl = form.get('accountId');
+    if (accountControl) {
+      if (isHistorical) {
+        accountControl.clearValidators();
+      } else {
+        accountControl.setValidators([Validators.required]);
+      }
+      accountControl.updateValueAndValidity({ emitEvent: false });
+    }
+    const applyIrControl = form.get('applyIr');
+    if (applyIrControl) {
+      if (isHistorical) {
+        applyIrControl.setValue(false, { emitEvent: false });
+        applyIrControl.disable({ emitEvent: false });
+      } else {
+        applyIrControl.enable({ emitEvent: false });
+      }
+    }
+    if (isHistorical && investment?.systemStartDate) {
+      const dateControl = form.get('date');
+      const suggestedDate = investment.systemStartDate;
+      const currentDate = dateControl?.value;
+      if (dateControl && suggestedDate && (!currentDate || currentDate > suggestedDate)) {
+        dateControl.setValue(suggestedDate);
+      }
+    }
+  }
+
+  private validateHistoricalDate(dateValue: string, investment: InvestmentView | null): string | null {
+    if (!dateValue) {
+      return 'Informe a data do movimento.';
+    }
+    if (dateValue > this.todayYmd) {
+      return 'Movimento historico deve ser no passado.';
+    }
+    const limitDate = investment?.systemStartDate || investment?.realStartDate;
+    if (limitDate && dateValue > limitDate) {
+      return 'Movimento histórico deve ser anterior a data de cadastro.';
+    }
+    return null;
   }
 
   private validateForm(): string | null {

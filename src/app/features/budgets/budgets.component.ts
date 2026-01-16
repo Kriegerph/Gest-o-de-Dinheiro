@@ -44,7 +44,7 @@ export class BudgetsComponent {
 
   form = this.fb.group({
     categoryId: ['', Validators.required],
-    limitAmount: [0, [Validators.required, Validators.min(1)]]
+    limitAmount: [null as number | null, [Validators.required, Validators.min(1)]]
   });
 
   categories$ = this.auth.user$.pipe(
@@ -150,7 +150,7 @@ export class BudgetsComponent {
   resetForm() {
     this.editingId = null;
     this.form.enable();
-    this.form.reset({ limitAmount: 0, categoryId: '' });
+    this.form.reset({ limitAmount: null, categoryId: '' });
   }
 
   changePeriod() {

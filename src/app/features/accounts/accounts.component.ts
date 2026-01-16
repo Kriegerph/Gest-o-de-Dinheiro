@@ -34,7 +34,7 @@ export class AccountsComponent {
 
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
-    initialBalance: [0, [Validators.required, Validators.min(0)]],
+    initialBalance: [null as number | null, [Validators.required, Validators.min(0)]],
     color: ['#6366f1', Validators.required]
   });
 
@@ -83,16 +83,20 @@ export class AccountsComponent {
 
   edit(account: Account) {
     this.editingId = account.id || null;
+    const initialBalance =
+      account.initialBalance === null || account.initialBalance === undefined
+        ? null
+        : Number(account.initialBalance);
     this.form.patchValue({
       name: account.name,
-      initialBalance: Number(account.initialBalance ?? 0),
+      initialBalance,
       color: account.color || '#6366f1'
     });
   }
 
   resetForm() {
     this.editingId = null;
-    this.form.reset({ name: '', initialBalance: 0, color: '#6366f1' });
+    this.form.reset({ name: '', initialBalance: null, color: '#6366f1' });
   }
 
   async save() {

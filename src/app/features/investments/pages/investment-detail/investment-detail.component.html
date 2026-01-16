@@ -1,0 +1,448 @@
+<div class="row g-3 investment-detail">
+  <ng-container *ngIf="viewState$ | async as state">
+    <ng-container *ngIf="state.loaded; else loadingTpl">
+      <ng-container *ngIf="state.view as view; else missingTpl">
+        <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <p class="text-uppercase text-primary small mb-1">Patrimônio</p>
+            <h3 class="fw-bold mb-0">{{ view.name }}</h3>
+            <div class="text-secondary small">
+              {{ view.typeLabel }} • {{ view.statusLabel }}
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-light" routerLink="/app/investments">Voltar</a>
+          </div>
+        </div>
+
+        <div class="col-lg-7">
+          <div class="glass-card p-3 h-100">
+            <h6 class="fw-semibold mb-3">Resumo</h6>
+            <div class="summary-grid">
+              <div class="glass-card summary-card">
+                <div class="summary-label">Valor atual estimado</div>
+                <div class="summary-value">
+                  {{ view.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </div>
+                <div class="summary-sub">
+                  Atualizado em {{ view.updatedLabel }}
+                </div>
+              </div>
+              <div class="glass-card summary-card">
+                <div class="summary-label">Total investido (capital)</div>
+                <div class="summary-value">
+                  {{ view.principalBase | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </div>
+                <div class="summary-sub">Base no sistema</div>
+              </div>
+              <div class="glass-card summary-card">
+                <div class="summary-label">Rendimento total</div>
+                <div class="summary-value" [class.text-success]="view.totalYield >= 0"
+                  [class.text-danger]="view.totalYield < 0">
+                  {{ view.totalYield | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </div>
+                <div class="summary-sub">
+                  {{ view.totalReturnPercent | number:'1.0-2' }}%
+                </div>
+              </div>
+            </div>
+            <div class="text-warning small mt-2" *ngIf="view.indexMissing">
+              Sem índice atualizado para investimentos indexados.
+            </div>
+            <div class="text-secondary small mt-1" *ngIf="view.placeholderUsed">
+              Taxa placeholder aplicada.
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="glass-card p-3 h-100 actions-card">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h6 class="fw-semibold mb-0">Acoes</h6>
+              <span class="badge" [ngClass]="{
+                'bg-success-subtle text-success': view.status === 'active',
+                'bg-secondary-subtle text-secondary': view.status === 'inactive'
+              }">
+                {{ view.statusLabel }}
+              </span>
+            </div>
+            <div class="actions-grid">
+              <button class="btn btn-sm btn-outline-success action-btn" type="button"
+                (click)="openDeposit(view)" [disabled]="view.status === 'inactive'">
+                <i class="bi bi-plus-circle"></i>
+                <span class="action-label">Aportar</span>
+              </button>
+              <button class="btn btn-sm btn-outline-warning action-btn" type="button"
+                (click)="openWithdraw(view)" [disabled]="view.status === 'inactive'">
+                <i class="bi bi-dash-circle"></i>
+                <span class="action-label">Resgatar</span>
+              </button>
+              <button class="btn btn-sm btn-outline-danger action-btn action-btn--danger" type="button"
+                (click)="toggleStatus(view)" [disabled]="togglingStatus">
+                <span *ngIf="togglingStatus" class="spinner-border spinner-border-sm me-1"></span>
+                <i class="bi bi-power"></i>
+                <span class="action-label">
+                  {{ view.status === 'active' ? 'Inativar' : 'Ativar' }}
+                </span>
+              </button>
+            </div>
+            <div class="text-secondary small mt-2">
+              Edição completa feita na lista de investimentos.
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="glass-card p-3">
+            <div class="history-header">
+              <div>
+                <h6 class="fw-semibold mb-1">Histórico de movimentações</h6>
+                <div class="text-secondary small">
+                  Aportes e resgates vinculados as suas contas
+                </div>
+              </div>
+              <div class="history-filters">
+                <div class="filter-field">
+                  <label class="form-label text-secondary small">Tipo</label>
+                  <select class="form-select form-select-sm" [value]="filterType"
+                    (change)="onFilterTypeChange($any($event.target).value)">
+                    <option value="all">Todos</option>
+                    <option value="deposit">Aportes</option>
+                    <option value="withdraw">Resgates</option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label class="form-label text-secondary small">Período</label>
+                  <select class="form-select form-select-sm" [value]="filterPeriod"
+                    (change)="onFilterPeriodChange($any($event.target).value)">
+                    <option value="all">Tudo</option>
+                    <option value="last_30">Últimos 30 dias</option>
+                    <option value="this_month">Este mês</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <ng-container *ngIf="history$ | async as history">
+              <div class="history-totals" *ngIf="history.hasMovements">
+                <div class="total-card">
+                  <div class="total-label">Total aportado (no app)</div>
+                  <div class="total-value">
+                    {{ history.totalDeposits | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  </div>
+                </div>
+                <div class="total-card">
+                  <div class="total-label">Total resgatado (no app)</div>
+                  <div class="total-value">
+                    {{ history.totalWithdraws | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="movement-list" *ngIf="history.items.length > 0; else emptyMovementsTpl">
+                <div class="movement-row" *ngFor="let movement of history.items; trackBy: trackByMovementId">
+                  <div class="movement-icon" [class.deposit]="movement.type === 'deposit'"
+                    [class.withdraw]="movement.type === 'withdraw'">
+                    <i class="bi bi-plus" *ngIf="movement.type === 'deposit'"></i>
+                    <i class="bi bi-dash" *ngIf="movement.type === 'withdraw'"></i>
+                  </div>
+                  <div class="movement-body">
+                    <div class="movement-title">
+                      {{ movementLabel(movement) }}
+                      <span class="movement-badge" *ngIf="movement.isHistorical">Histórico</span>
+                      <span class="movement-badge" *ngIf="movement.type === 'withdraw' && movement.irRate !== null">
+                        IR estimado
+                      </span>
+                    </div>
+                    <div class="movement-meta">
+                      <span>{{ formatDate(movement.date) }}</span>
+                      <span class="dot">?</span>
+                      <ng-container *ngIf="!movement.isHistorical; else historicalAccountTpl">
+                        <span>{{ movementDirectionLabel(movement) }} {{ movementAccountLabel(movement) }}</span>
+                      </ng-container>
+                      <ng-template #historicalAccountTpl>
+                        <span>{{ movementHistoricalAccountLabel(movement) }}</span>
+                      </ng-template>
+                    </div>
+                    <div class="movement-ir" *ngIf="movement.type === 'withdraw' && movement.irRate !== null">
+                      <span>
+                        IR estimado:
+                        {{ (movement.irEstimated ?? 0) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </span>
+                      <span class="dot">?</span>
+                      <span>
+                        Valor líquido recebido:
+                        {{
+                          (movement.netAmount ?? movement.grossAmount ?? movement.amount)
+                            | currency:'BRL':'symbol':'1.2-2':'pt-BR'
+                        }}
+                      </span>
+                    </div>
+                    <div class="movement-historical-note" *ngIf="movement.isHistorical">
+                      Sem impacto em contas
+                    </div>
+                    <div class="movement-note" *ngIf="movement.note">{{ movement.note }}</div>
+                    <div class="movement-related" *ngIf="movement.relatedTransactionId">
+                      Lançamento: {{ movement.relatedTransactionId }}
+                    </div>
+                  </div>
+                  <div class="movement-amount" [class.positive]="movement.type === 'deposit'"
+                    [class.negative]="movement.type === 'withdraw'">
+                    {{ movement.type === 'deposit' ? '+' : '-' }}
+                    {{ (movement.grossAmount ?? movement.amount) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  </div>
+                  <div class="movement-actions"
+                    [attr.title]="movement.isHistorical ? null : 'Não é possível remover aqui porque gerou lançamento.'">
+                    <button class="btn btn-sm btn-outline-danger movement-delete-btn" type="button"
+                      [disabled]="!movement.isHistorical"
+                      (click)="openDeleteMovement(movement)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" *ngIf="showDepositModal" (click)="closeDeposit()">
+          <div class="glass-card modal-card" (click)="$event.stopPropagation()">
+            <div class="modal-header-row">
+              <h6 class="fw-semibold mb-0">Aportar em {{ selectedInvestment?.name }}</h6>
+              <button class="btn btn-sm btn-outline-light" type="button" (click)="closeDeposit()">
+                Fechar
+              </button>
+            </div>
+            <form [formGroup]="depositForm" class="d-grid gap-3 mt-3" (ngSubmit)="confirmDeposit()">
+              <div>
+                <label class="form-label text-secondary">Valor</label>
+                <input type="number" class="form-control glass-input" formControlName="amount" step="0.01"
+                  placeholder="Ex: 1.000,00" />
+              </div>
+              <div class="form-grid-fixed">
+                <div class="form-field">
+                  <label class="form-label text-secondary">Data</label>
+                  <input type="date" class="form-control glass-input" formControlName="date" />
+                </div>
+                <div class="form-field account-field">
+                  <label class="form-label text-secondary">
+                    {{
+                      depositForm.get('isHistorical')?.value
+                        ? 'Conta (opcional)'
+                        : 'Conta de origem'
+                    }}
+                  </label>
+                  <select class="form-select" formControlName="accountId">
+                    <option value="" disabled>Selecione...</option>
+                    <option *ngFor="let account of (accounts$ | async)" [value]="account.id">
+                      {{ account.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="historical-block">
+                <div class="historical-toggle">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input toggle-switch" type="checkbox" formControlName="isHistorical"
+                      (change)="onDepositHistoricalToggle()" id="detail-deposit-historical-toggle" />
+                    <label class="form-check-label toggle-label" for="detail-deposit-historical-toggle">
+                      Movimentação anterior ao cadastro do investimento (histórico)
+                    </label>
+                  </div>
+                </div>
+                <small class="text-secondary historical-helper"
+                  [class.historical-helper--hidden]="!depositForm.get('isHistorical')?.value">
+                  Não gera lançamento e não altera o saldo das contas. Serve apenas para montar o histórico.
+                </small>
+              </div>
+
+              <div>
+                <label class="form-label text-secondary">Observação</label>
+                <input class="form-control glass-input" formControlName="notes" placeholder="Opcional" />
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="submittingDeposit">
+                  <span *ngIf="submittingDeposit" class="spinner-border spinner-border-sm me-2"></span>
+                  {{ depositForm.get('isHistorical')?.value ? 'Registrar no histórico' : 'Confirmar aporte' }}
+                </button>
+                <button class="btn btn-outline-light" type="button" (click)="closeDeposit()">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" *ngIf="showWithdrawModal" (click)="closeWithdraw()">
+          <div class="glass-card modal-card" (click)="$event.stopPropagation()">
+            <div class="modal-header-row">
+              <h6 class="fw-semibold mb-0">Resgatar de {{ selectedInvestment?.name }}</h6>
+              <button class="btn btn-sm btn-outline-light" type="button" (click)="closeWithdraw()">
+                Fechar
+              </button>
+            </div>
+            <div class="text-secondary small mt-2">
+              Valor estimado atual:
+              {{ selectedInvestment?.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            </div>
+            <div class="text-warning small" *ngIf="selectedInvestment?.indexMissing">
+              Valor estimado. Sem índice atualizado.
+            </div>
+            <form [formGroup]="withdrawForm" class="d-grid gap-3 mt-3" (ngSubmit)="confirmWithdraw()">
+              <div>
+                <label class="form-label text-secondary">Valor</label>
+                <input type="number" class="form-control glass-input" formControlName="amount" step="0.01"
+                  placeholder="Ex: 1.000,00" />
+              </div>
+              <div class="form-grid-fixed">
+                <div class="form-field">
+                  <label class="form-label text-secondary">Data</label>
+                  <input type="date" class="form-control glass-input" formControlName="date" />
+                </div>
+                <div class="form-field account-field">
+                  <label class="form-label text-secondary">
+                    {{
+                      withdrawForm.get('isHistorical')?.value
+                        ? 'Conta (opcional)'
+                        : 'Conta de destino'
+                    }}
+                  </label>
+                  <select class="form-select" formControlName="accountId">
+                    <option value="" disabled>Selecione...</option>
+                    <option *ngFor="let account of (accounts$ | async)" [value]="account.id">
+                      {{ account.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="historical-block">
+                <div class="historical-toggle">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input toggle-switch" type="checkbox" formControlName="isHistorical"
+                      (change)="onWithdrawHistoricalToggle()" id="detail-withdraw-historical-toggle" />
+                    <label class="form-check-label toggle-label" for="detail-withdraw-historical-toggle">
+                      Movimentação anterior ao cadastro do investimento (histórico)
+                    </label>
+                  </div>
+                </div>
+                <small class="text-secondary historical-helper"
+                  [class.historical-helper--hidden]="!withdrawForm.get('isHistorical')?.value">
+                  Nao gera lançamento e não altera o saldo das contas. Serve apenas para montar o histórico.
+                </small>
+              </div>
+              <div *ngIf="!withdrawForm.get('isHistorical')?.value">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" formControlName="applyIr"
+                    id="detail-withdraw-ir-toggle" />
+                  <label class="form-check-label" for="detail-withdraw-ir-toggle">
+                    Descontar IR automaticamente (estimativa)
+                  </label>
+                </div>
+                <small class="text-secondary">
+                  O valor líquido considera o desconto estimado de Imposto de Renda, como ocorre nos bancos.
+                </small>
+              </div>
+              <div class="ir-preview" *ngIf="withdrawIrEstimate as ir">
+                <div class="ir-row">
+                  <span>Lucro estimado</span>
+                  <strong>{{ ir.profitPortion | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                </div>
+                <div class="ir-row">
+                  <span>Aliquota de IR (%)</span>
+                  <strong>{{ ir.irRate * 100 | number:'1.0-2' }}</strong>
+                </div>
+                <div class="ir-row">
+                  <span>IR estimado</span>
+                  <strong>{{ ir.irValue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                </div>
+                <div class="ir-row">
+                  <span>Valor líquido a receber</span>
+                  <strong>{{ ir.netAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                </div>
+              </div>
+              <div>
+                <label class="form-label text-secondary">Observação</label>
+                <input class="form-control glass-input" formControlName="notes" placeholder="Opcional" />
+              </div>
+              <div class="text-secondary small" *ngIf="!withdrawForm.get('isHistorical')?.value">
+                Valores estimados. O desconto real pode variar conforme regras do banco.
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="submittingWithdraw">
+                  <span *ngIf="submittingWithdraw" class="spinner-border spinner-border-sm me-2"></span>
+                  {{ withdrawForm.get('isHistorical')?.value ? 'Registrar no histórico' : 'Confirmar resgate' }}
+                </button>
+                <button class="btn btn-outline-light" type="button" (click)="closeWithdraw()">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" *ngIf="showDeleteMovementModal" (click)="closeDeleteMovementModal()">
+          <div class="glass-card modal-card" (click)="$event.stopPropagation()">
+            <div class="modal-header-row">
+              <h6 class="fw-semibold mb-0">Excluir movimentação?</h6>
+              <button class="btn btn-sm btn-outline-light" type="button" (click)="closeDeleteMovementModal()">
+                Fechar
+              </button>
+            </div>
+            <div class="text-secondary small mt-2">
+              Essa ação remove apenas este registro do histórico do investimento. Não altera contas nem lançamentos.
+            </div>
+            <div class="movement-delete-summary mt-3" *ngIf="movementToDelete as movement">
+              <div class="d-flex justify-content-between">
+                <span class="text-secondary small">Tipo</span>
+                <span class="fw-semibold">{{ movementLabel(movement) }}</span>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-secondary small">Valor</span>
+                <span>{{ movement.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-secondary small">Data</span>
+                <span>{{ formatDate(movement.date) }}</span>
+              </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-outline-light flex-grow-1" type="button" (click)="closeDeleteMovementModal()">
+                Cancelar
+              </button>
+              <button class="btn btn-danger flex-grow-1" type="button" (click)="confirmDeleteMovement()"
+                [disabled]="deletingMovement">
+                <span *ngIf="deletingMovement" class="spinner-border spinner-border-sm me-2"></span>
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+
+  <ng-template #loadingTpl>
+    <div class="col-12">
+      <div class="glass-card p-3">
+        <div class="skeleton skeleton-line w-50 mb-2"></div>
+        <div class="skeleton skeleton-line w-75"></div>
+      </div>
+    </div>
+    <div class="col-12" *ngFor="let _ of skeletonRows">
+      <div class="glass-card p-3">
+        <div class="skeleton skeleton-line w-50 mb-2"></div>
+        <div class="skeleton skeleton-line w-75"></div>
+      </div>
+    </div>
+  </ng-template>
+
+  <ng-template #missingTpl>
+    <div class="col-12">
+      <div class="glass-card p-3">
+        Investimento não encontrado.
+      </div>
+    </div>
+  </ng-template>
+
+  <ng-template #emptyMovementsTpl>
+    <div class="empty-state">
+      Nenhuma movimentação registrada ainda.
+    </div>
+  </ng-template>
+</div>

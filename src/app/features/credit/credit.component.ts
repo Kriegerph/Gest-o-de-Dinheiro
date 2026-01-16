@@ -772,9 +772,11 @@ export class CreditComponent implements OnInit, OnDestroy {
   private syncInstallments(count: number) {
     const safeCount = Math.max(1, Math.min(count, 48));
     while (this.installmentsArray.length < safeCount) {
+      const firstRaw = this.installmentsArray.at(0)?.value;
+      const hasFirstValue = firstRaw !== null && firstRaw !== undefined && firstRaw !== '';
       const initialValue = this.sameValueEnabled
-        ? Number(this.installmentsArray.at(0)?.value ?? 0)
-        : 0;
+        ? (hasFirstValue ? Number(firstRaw) : null)
+        : null;
       this.installmentsArray.push(this.fb.control(initialValue, [Validators.min(0.01)]));
     }
     while (this.installmentsArray.length > safeCount) {
@@ -786,7 +788,14 @@ export class CreditComponent implements OnInit, OnDestroy {
   }
 
   private copyFirstInstallmentAmount() {
-    const firstValue = Number(this.installmentsArray.at(0)?.value ?? 0);
+    const rawValue = this.installmentsArray.at(0)?.value;
+    if (rawValue === null || rawValue === undefined || rawValue === '') {
+      return;
+    }
+    const firstValue = Number(rawValue);
+    if (!Number.isFinite(firstValue)) {
+      return;
+    }
     for (let i = 1; i < this.installmentsArray.length; i++) {
       this.installmentsArray.at(i).setValue(firstValue, { emitEvent: false });
     }

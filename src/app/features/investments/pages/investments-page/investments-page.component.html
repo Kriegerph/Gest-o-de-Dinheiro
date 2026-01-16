@@ -1,7 +1,7 @@
 <div class="row g-3 investments-page">
   <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-2">
     <div>
-      <p class="text-uppercase text-primary small mb-1">Patrimonio</p>
+      <p class="text-uppercase text-primary small mb-1">Patrimônio</p>
       <h3 class="fw-bold mb-0">Investimentos</h3>
     </div>
     <div class="d-flex gap-2">
@@ -92,7 +92,7 @@
           <div *ngIf="!isBeforeApp">
             <label class="form-label text-secondary">Valor aplicado inicial</label>
             <input type="number" class="form-control glass-input" formControlName="principalBase" step="0.01"
-              placeholder="Ex: 5000.00" />
+              placeholder="Ex: 5.000,00" />
           </div>
 
           <div *ngIf="isBeforeApp" class="d-grid gap-2">
@@ -104,7 +104,7 @@
               <div class="col-6">
                 <label class="form-label text-secondary">Valor atual</label>
                 <input type="number" class="form-control glass-input" formControlName="currentValueAtOnboarding"
-                  step="0.01" placeholder="Ex: 12000.00" />
+                  step="0.01" placeholder="Ex: 12.000,00" />
               </div>
             </div>
             <div class="row g-2">
@@ -234,37 +234,17 @@
                   </td>
                   <td class="text-end actions-cell">
                     <div class="actions-stack">
-                      <div class="actions-row actions-primary">
-                        <button class="btn btn-sm btn-outline-success action-btn" type="button"
-                          (click)="openDeposit(item)" [disabled]="item.status === 'inactive'"
-                          title="Adicionar valor ao investimento">
-                          <i class="bi bi-plus-circle"></i>
-                          <span class="action-label">Aportar</span>
-                        </button>
-                        <button class="btn btn-sm btn-outline-warning action-btn" type="button"
-                          (click)="openWithdraw(item)" [disabled]="item.status === 'inactive'"
-                          title="Resgatar valor do investimento">
-                          <i class="bi bi-dash-circle"></i>
-                          <span class="action-label">Resgatar</span>
-                        </button>
-                      </div>
-                      <div class="actions-row actions-secondary">
-                        <button class="btn btn-sm btn-outline-light action-btn action-btn--ghost" type="button"
-                          (click)="edit(item)" title="Editar investimento">
-                          <i class="bi bi-pencil"></i>
-                          <span class="action-label action-label--secondary">Editar</span>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger action-btn action-btn--danger" type="button"
-                          (click)="toggleStatus(item)" [disabled]="togglingId === item.id"
-                          [attr.title]="item.status === 'active' ? 'Inativar investimento' : 'Ativar investimento'">
-                          <span *ngIf="togglingId === item.id"
-                            class="spinner-border spinner-border-sm me-1"></span>
-                          <i class="bi bi-power"></i>
-                          <span class="action-label action-label--secondary">
-                            {{ item.status === 'active' ? 'Inativar' : 'Ativar' }}
-                          </span>
-                        </button>
-                      </div>
+                      <a class="btn btn-sm btn-outline-light action-btn action-btn--ghost" *ngIf="item.id"
+                        [routerLink]="['/app/investments', item.id]"
+                        title="Ver detalhes do investimento">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        <span class="action-label">Detalhes</span>
+                      </a>
+                      <button class="btn btn-sm btn-outline-light action-btn action-btn--ghost" type="button"
+                        (click)="edit(item)" title="Editar investimento">
+                        <i class="bi bi-pencil"></i>
+                        <span class="action-label">Editar</span>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -312,15 +292,22 @@
       <form [formGroup]="depositForm" class="d-grid gap-3 mt-3" (ngSubmit)="confirmDeposit()">
         <div>
           <label class="form-label text-secondary">Valor</label>
-          <input type="number" class="form-control glass-input" formControlName="amount" step="0.01" />
+          <input type="number" class="form-control glass-input" formControlName="amount" step="0.01"
+            placeholder="Ex: 1.000,00" />
         </div>
-        <div class="row g-2">
-          <div class="col-6">
+        <div class="form-grid-fixed">
+          <div class="form-field">
             <label class="form-label text-secondary">Data</label>
             <input type="date" class="form-control glass-input" formControlName="date" />
           </div>
-          <div class="col-6">
-            <label class="form-label text-secondary">Conta de origem</label>
+          <div class="form-field account-field">
+            <label class="form-label text-secondary">
+              {{
+                depositForm.get('isHistorical')?.value
+                  ? 'Conta (opcional)'
+                  : 'Conta de origem'
+              }}
+            </label>
             <select class="form-select" formControlName="accountId">
               <option value="" disabled>Selecione...</option>
               <option *ngFor="let account of (accounts$ | async)" [value]="account.id">
@@ -329,6 +316,22 @@
             </select>
           </div>
         </div>
+        <div class="historical-block">
+          <div class="historical-toggle">
+            <div class="form-check form-switch">
+              <input class="form-check-input toggle-switch" type="checkbox" formControlName="isHistorical"
+                (change)="onDepositHistoricalToggle()" id="deposit-historical-toggle" />
+              <label class="form-check-label toggle-label" for="deposit-historical-toggle">
+                Movimentação anterior ao cadastro do investimento (histórico)
+              </label>
+            </div>
+          </div>
+          <small class="text-secondary historical-helper"
+            [class.historical-helper--hidden]="!depositForm.get('isHistorical')?.value">
+            Não gera lançamento e não altera o saldo das contas. Serve apenas para montar o histórico.
+          </small>
+        </div>
+
         <div>
           <label class="form-label text-secondary">Observação</label>
           <input class="form-control glass-input" formControlName="notes" placeholder="Opcional" />
@@ -336,7 +339,7 @@
         <div class="d-flex gap-2">
           <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="submittingDeposit">
             <span *ngIf="submittingDeposit" class="spinner-border spinner-border-sm me-2"></span>
-            Confirmar aporte
+            {{ depositForm.get('isHistorical')?.value ? 'Registrar no histórico' : 'Confirmar aporte' }}
           </button>
           <button class="btn btn-outline-light" type="button" (click)="closeDeposit()">Cancelar</button>
         </div>
@@ -355,20 +358,27 @@
         {{ selectedInvestment?.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
       </div>
       <div class="text-warning small" *ngIf="selectedInvestment?.indexMissing">
-        Valor estimado. Sem indice atualizado.
+        Valor estimado. Sem índice atualizado.
       </div>
       <form [formGroup]="withdrawForm" class="d-grid gap-3 mt-3" (ngSubmit)="confirmWithdraw()">
         <div>
           <label class="form-label text-secondary">Valor</label>
-          <input type="number" class="form-control glass-input" formControlName="amount" step="0.01" />
+          <input type="number" class="form-control glass-input" formControlName="amount" step="0.01"
+            placeholder="Ex: 1.000,00" />
         </div>
-        <div class="row g-2">
-          <div class="col-6">
+        <div class="form-grid-fixed">
+          <div class="form-field">
             <label class="form-label text-secondary">Data</label>
             <input type="date" class="form-control glass-input" formControlName="date" />
           </div>
-          <div class="col-6">
-            <label class="form-label text-secondary">Conta de destino</label>
+          <div class="form-field account-field">
+            <label class="form-label text-secondary">
+              {{
+                withdrawForm.get('isHistorical')?.value
+                  ? 'Conta (opcional)'
+                  : 'Conta de destino'
+              }}
+            </label>
             <select class="form-select" formControlName="accountId">
               <option value="" disabled>Selecione...</option>
               <option *ngFor="let account of (accounts$ | async)" [value]="account.id">
@@ -377,14 +387,62 @@
             </select>
           </div>
         </div>
+        <div class="historical-block">
+          <div class="historical-toggle">
+            <div class="form-check form-switch">
+              <input class="form-check-input toggle-switch" type="checkbox" formControlName="isHistorical"
+                (change)="onWithdrawHistoricalToggle()" id="withdraw-historical-toggle" />
+              <label class="form-check-label toggle-label" for="withdraw-historical-toggle">
+                Movimentação anterior ao cadastro do investimento (histórico)
+              </label>
+            </div>
+          </div>
+          <small class="text-secondary historical-helper"
+            [class.historical-helper--hidden]="!withdrawForm.get('isHistorical')?.value">
+            Não gera lançamento e não altera o saldo das contas. Serve apenas para montar o histórico.
+          </small>
+        </div>
+        <div *ngIf="!withdrawForm.get('isHistorical')?.value">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" formControlName="applyIr"
+              id="withdraw-ir-toggle" />
+            <label class="form-check-label" for="withdraw-ir-toggle">
+              Descontar IR automaticamente (estimativa)
+            </label>
+          </div>
+          <small class="text-secondary">
+            O valor líquido considera o desconto estimado de Imposto de Renda, como ocorre nos bancos.
+          </small>
+        </div>
+        <div class="ir-preview" *ngIf="withdrawIrEstimate as ir">
+          <div class="ir-row">
+            <span>Lucro estimado</span>
+            <strong>{{ ir.profitPortion | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+          </div>
+          <div class="ir-row">
+            <span>Alíquota de IR (%)</span>
+            <strong>{{ ir.irRate * 100 | number:'1.0-2' }}</strong>
+          </div>
+          <div class="ir-row">
+            <span>IR estimado</span>
+            <strong>{{ ir.irValue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+          </div>
+          <div class="ir-row">
+            <span>Valor líquido a receber</span>
+            <strong>{{ ir.netAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+          </div>
+        </div>
         <div>
-          <label class="form-label text-secondary">Observação</label>
+          <label class="form-label text-secondary">Observacao</label>
           <input class="form-control glass-input" formControlName="notes" placeholder="Opcional" />
+        </div>
+        <div class="text-secondary small" *ngIf="!withdrawForm.get('isHistorical')?.value">
+          Valores estimados. O desconto real pode variar conforme regras do banco.
         </div>
         <div class="d-flex gap-2">
           <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="submittingWithdraw">
             <span *ngIf="submittingWithdraw" class="spinner-border spinner-border-sm me-2"></span>
-            Confirmar resgate
+            {{ withdrawForm.get('isHistorical')?.value ? 'Registrar no historico' : 'Confirmar resgate' }}
           </button>
           <button class="btn btn-outline-light" type="button" (click)="closeWithdraw()">Cancelar</button>
         </div>

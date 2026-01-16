@@ -18,7 +18,7 @@
           <div class="kpi-sub">Somatório das contas (sem investimentos)</div>
         </div>
         <div class="glass-card kpi-card kpi-center">
-          <div class="kpi-label">Patrimonio investido</div>
+          <div class="kpi-label">Patrimônio investido</div>
           <div class="kpi-value">
             {{ view.investments.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
           </div>
@@ -447,13 +447,13 @@
         <div class="timeline-viewport">
           <div class="timeline-header">
             <div class="timeline-title">
-              <h6 class="fw-semibold mb-1">Linha do tempo do mes</h6>
+              <h6 class="fw-semibold mb-1">Linha do tempo do mês</h6>
               <small class="text-secondary">
-                Passe o mouse (ou toque) em um dia para ver entradas e saidas.
+                Passe o mouse (ou toque) em um dia para ver entradas e saídas.
               </small>
             </div>
             <div class="timeline-help text-secondary">
-              <small>Dica: dias com movimentacao ficam destacados.</small>
+              <small>Dica: dias com movimentação ficam destacados.</small>
             </div>
           </div>
 
@@ -471,7 +471,7 @@
                     <div class="tt-date">{{ d.date | date:'dd/MM' }}</div>
 
                     <div class="tt-empty" *ngIf="d.income === 0 && d.expense === 0">
-                      Sem movimentacoes
+                      Sem movimentações
                     </div>
 
                     <div class="tt-row" *ngIf="d.income !== 0 || d.expense !== 0">

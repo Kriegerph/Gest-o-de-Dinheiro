@@ -160,7 +160,13 @@ export class BudgetsComponent {
 
   async delete(budget: Budget) {
     if (!budget.id) return;
-    const confirmed = confirm('Excluir esta meta?');
+    const confirmed = await this.notifications.confirm({
+      title: 'Excluir meta?',
+      message: 'Essa ação remove a meta do período selecionado.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger'
+    });
     if (!confirmed) return;
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;

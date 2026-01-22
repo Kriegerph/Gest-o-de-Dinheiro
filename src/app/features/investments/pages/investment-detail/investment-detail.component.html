@@ -25,7 +25,7 @@
                   {{ view.totalEstimated | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
                 </div>
                 <div class="summary-sub">
-                  Atualizado em {{ view.updatedLabel }}
+                  Atualizado {{ view.updatedLabel === 'hoje' ? 'hoje' : 'em ' + view.updatedLabel }}
                 </div>
               </div>
               <div class="glass-card summary-card">
@@ -325,7 +325,7 @@
                 </div>
                 <small class="text-secondary historical-helper"
                   [class.historical-helper--hidden]="!withdrawForm.get('isHistorical')?.value">
-                  Nao gera lançamento e não altera o saldo das contas. Serve apenas para montar o histórico.
+                  Não gera lançamento e não altera o saldo das contas. Serve apenas para montar o histórico.
                 </small>
               </div>
               <div *ngIf="!withdrawForm.get('isHistorical')?.value">

@@ -16,17 +16,27 @@ import {
   updateDoc,
   writeBatch
 } from '@angular/fire/firestore';
-import { map, Observable } from 'rxjs';
+import { firstValueFrom, map, Observable } from 'rxjs';
 import { Investment } from '../models/investment.model';
-import { toYmd } from '../../../shared/utils/date.util';
+import { DailyIndex } from '../models/index.model';
+import {
+  daysBetweenLocal,
+  localDateFromYmd,
+  toLocalDateKey,
+  toYmd
+} from '../../../shared/utils/date.util';
 import { Account } from '../../../core/models/account.model';
 import { environment } from '../../../../environments/environment';
 import { InvestmentsCalculatorService } from './investments-calculator.service';
+import { IndicesService } from './indices.service';
 
 @Injectable({ providedIn: 'root' })
 export class InvestmentsService {
   private firestore = inject(Firestore);
   private calculator = inject(InvestmentsCalculatorService);
+  private indicesService = inject(IndicesService);
+  private dailyYieldRunKeyByUser = new Map<string, string>();
+  private dailyYieldRunning = new Set<string>();
 
   list$(uid: string): Observable<Investment[]> {
     const ref = collection(this.firestore, `users/${uid}/investments`);
@@ -319,12 +329,117 @@ export class InvestmentsService {
     });
   }
 
+  async runDailyYieldUpdateForUser(uid: string): Promise<void> {
+    if (!uid) {
+      return;
+    }
+    const today = new Date();
+    const todayKey = toLocalDateKey(today);
+    if (this.dailyYieldRunning.has(uid)) {
+      return;
+    }
+    if (this.dailyYieldRunKeyByUser.get(uid) === todayKey) {
+      return;
+    }
+
+    this.dailyYieldRunning.add(uid);
+    try {
+      const [cdi, selic] = await Promise.all([
+        firstValueFrom(this.indicesService.latest$('cdi')),
+        firstValueFrom(this.indicesService.latest$('selic'))
+      ]);
+      const ref = collection(this.firestore, `users/${uid}/investments`);
+      const snap = await getDocs(ref);
+      if (snap.empty) {
+        this.dailyYieldRunKeyByUser.set(uid, todayKey);
+        return;
+      }
+
+      const batch = writeBatch(this.firestore);
+      let updates = 0;
+
+      for (const docSnap of snap.docs) {
+        const investment = this.normalize({
+          id: docSnap.id,
+          ...(docSnap.data() as Investment)
+        });
+        if (investment.status !== 'active') {
+          continue;
+        }
+        if (!this.canCalculateYield(investment, { cdi, selic })) {
+          continue;
+        }
+        const lastCalcDate = this.resolveLastCalculationDate(investment);
+        const startDate = lastCalcDate ?? this.resolveYieldStartDate(investment);
+        if (!startDate) {
+          continue;
+        }
+        if (daysBetweenLocal(startDate, today) <= 0) {
+          continue;
+        }
+
+        const calcNow = this.calculator.calculate(investment, {
+          cdi,
+          selic,
+          referenceDate: today
+        });
+        const calcThen = this.calculator.calculate(investment, {
+          cdi,
+          selic,
+          referenceDate: lastCalcDate ?? startDate
+        });
+        const yieldDelta = Math.max(0, calcNow.postAppYield - calcThen.postAppYield);
+        const storedPostAppYield =
+          investment.postAppYield === null || investment.postAppYield === undefined
+            ? calcThen.postAppYield
+            : Number(investment.postAppYield ?? 0);
+        const nextPostAppYield = storedPostAppYield + yieldDelta;
+        const nextEstimated = calcNow.initialValue + nextPostAppYield;
+
+        if (!Number.isFinite(nextPostAppYield) || !Number.isFinite(nextEstimated)) {
+          continue;
+        }
+
+        batch.update(docSnap.ref, {
+          postAppYield: nextPostAppYield,
+          currentValueEstimated: nextEstimated,
+          lastYieldCalculationAt: todayKey,
+          updatedAt: serverTimestamp()
+        });
+        updates += 1;
+      }
+
+      if (updates > 0) {
+        await batch.commit();
+      }
+      this.dailyYieldRunKeyByUser.set(uid, todayKey);
+      if (!environment.production) {
+        console.log('[Investments] daily yield updated', { uid, updates, todayKey });
+      }
+    } catch (err) {
+      console.error('[Investments] daily yield update failed', err);
+    } finally {
+      this.dailyYieldRunning.delete(uid);
+    }
+  }
+
   private normalize(item: Investment): Investment {
     const yieldMode = item.yieldMode ?? 'manual_monthly';
     const compounding =
       item.compounding ?? (yieldMode === 'cdi_percent' || yieldMode === 'selic' ? 'daily' : 'monthly');
     const realStartDate = toYmd(item.realStartDate) || '';
     const systemStartDate = toYmd(item.systemStartDate) || realStartDate;
+    const onboardingDate = toYmd(item.onboardingDate) || '';
+    const lastYieldCalculationAt =
+      toYmd(item.lastYieldCalculationAt ?? item.lastCalculatedAt) || null;
+    const postAppYield =
+      item.postAppYield === null || item.postAppYield === undefined
+        ? null
+        : Number(item.postAppYield);
+    const currentValueEstimated =
+      item.currentValueEstimated === null || item.currentValueEstimated === undefined
+        ? null
+        : Number(item.currentValueEstimated);
 
     return {
       ...item,
@@ -333,6 +448,7 @@ export class InvestmentsService {
       hadBeforeApp: Boolean(item.hadBeforeApp),
       realStartDate,
       systemStartDate,
+      onboardingDate: onboardingDate || null,
       principalBase: Number(item.principalBase ?? 0),
       preAppYield: Number(item.preAppYield ?? 0),
       totalInvestedToDate:
@@ -343,10 +459,76 @@ export class InvestmentsService {
         item.currentValueAtOnboarding === null || item.currentValueAtOnboarding === undefined
           ? null
           : Number(item.currentValueAtOnboarding),
+      lastYieldCalculationAt,
+      postAppYield,
+      currentValueEstimated,
       yieldMode,
       manualRate: item.manualRate === null || item.manualRate === undefined ? null : Number(item.manualRate),
       cdiPercent: item.cdiPercent === null || item.cdiPercent === undefined ? null : Number(item.cdiPercent),
       compounding
     };
+  }
+
+  private canCalculateYield(
+    investment: Investment,
+    context: { cdi: DailyIndex | null; selic: DailyIndex | null }
+  ): boolean {
+    if (investment.yieldMode === 'manual_monthly' || investment.yieldMode === 'manual_yearly') {
+      return Number(investment.manualRate ?? 0) > 0;
+    }
+    const placeholderRate = Number(investment.manualRate ?? 0) > 0;
+    if (investment.yieldMode === 'cdi_percent') {
+      const hasIndex = Number(context.cdi?.value ?? 0) > 0;
+      return hasIndex || placeholderRate;
+    }
+    if (investment.yieldMode === 'selic') {
+      const hasIndex = Number(context.selic?.value ?? 0) > 0;
+      return hasIndex || placeholderRate;
+    }
+    return false;
+  }
+
+  private resolveLastCalculationDate(investment: Investment): Date | null {
+    return this.toLocalDate(investment.lastYieldCalculationAt ?? investment.lastCalculatedAt);
+  }
+
+  private resolveYieldStartDate(investment: Investment): Date | null {
+    const onboarding = this.toLocalDate(investment.onboardingDate);
+    if (onboarding) {
+      return onboarding;
+    }
+    const systemDate = localDateFromYmd(investment.systemStartDate);
+    if (systemDate) {
+      return systemDate;
+    }
+    const realDate = localDateFromYmd(investment.realStartDate);
+    if (realDate) {
+      return realDate;
+    }
+    return this.toLocalDate(investment.createdAt);
+  }
+
+  private toLocalDate(value: any): Date | null {
+    if (!value) {
+      return null;
+    }
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+      const date = value.toDate();
+      if (date instanceof Date && !Number.isNaN(date.getTime())) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      }
+    }
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    }
+    if (typeof value === 'string') {
+      const ymd = toYmd(value);
+      return localDateFromYmd(ymd);
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
   }
 }

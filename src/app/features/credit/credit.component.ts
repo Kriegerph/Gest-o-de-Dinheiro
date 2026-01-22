@@ -91,6 +91,7 @@ export class CreditComponent implements OnInit, OnDestroy {
   savingPurchase = false;
   deletingCardId: string | null = null;
   reconciling = false;
+  private installmentRequests = new Set<string>();
   readonly skeletonRows = Array.from({ length: 4 });
   readonly formatDate = formatPtBrFromYmd;
 
@@ -353,6 +354,15 @@ export class CreditComponent implements OnInit, OnDestroy {
     return item.id || `${item.purchaseId}-${item.installmentNumber}`;
   }
 
+  isInstallmentBusy(purchase: PurchaseView, inst: CreditInstallment): boolean {
+    const purchaseId = purchase?.id ?? '';
+    if (!purchaseId) {
+      return false;
+    }
+    const key = this.getInstallmentKey(purchaseId, inst);
+    return this.installmentRequests.has(key);
+  }
+
   private parseLocalYmd(value: string): Date | null {
     if (!value) return null;
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -480,7 +490,13 @@ export class CreditComponent implements OnInit, OnDestroy {
   }
 
   async deleteCard(card: CreditCard) {
-    const confirmed = confirm(`Excluir cartão "${card.name}"?`);
+    const confirmed = await this.notifications.confirm({
+      title: 'Excluir cartão?',
+      message: `Excluir cartão "${card.name}"? Essa ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger'
+    });
     if (!confirmed || !card.id) return;
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;
@@ -542,7 +558,14 @@ export class CreditComponent implements OnInit, OnDestroy {
   }
 
   async deletePurchase(purchase: PurchaseView): Promise<void> {
-    const ok = confirm('Excluir esta compra? Essa ação não pode ser desfeita.');
+    const ok = await this.notifications.confirm({
+      title: 'Excluir compra?',
+      message:
+        'Essa ação remove a compra e suas parcelas. Lançamentos já criados não serão apagados.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger'
+    });
     if (!ok || !purchase.id) return;
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;
@@ -563,28 +586,38 @@ export class CreditComponent implements OnInit, OnDestroy {
 
     const accountId = inst.paymentAccountId ?? null;
     if (!accountId) {
-      alert('Esta compra não tem uma conta vinculada para pagamento.');
+      this.notifications.warning('Esta compra não tem uma conta vinculada para pagamento.');
       return;
     }
 
     const nextPaid = !Boolean(inst.paid);
 
-    const ok = confirm(
-      nextPaid
+    const ok = await this.notifications.confirm({
+      title: nextPaid ? 'Confirmar pagamento?' : 'Confirmar estorno?',
+      message: nextPaid
         ? 'Marcar esta parcela como paga e descontar da conta vinculada?'
-        : 'Desmarcar pagamento desta parcela e estornar o desconto?'
-    );
+        : 'Desmarcar pagamento desta parcela e estornar o desconto?',
+      confirmText: nextPaid ? 'Confirmar' : 'Estornar',
+      cancelText: 'Cancelar',
+      tone: nextPaid ? 'default' : 'danger'
+    });
     if (!ok) return;
 
     const installmentId = inst.id ?? '';
     if (!installmentId) {
-      alert('Parcela sem identificador.');
+      this.notifications.warning('Parcela sem identificador.');
+      return;
+    }
+
+    const requestKey = this.getInstallmentKey(purchase.id, inst);
+    if (this.installmentRequests.has(requestKey)) {
       return;
     }
 
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;
 
+    this.installmentRequests.add(requestKey);
     try {
       await this.creditService.setInstallmentPaid(user.uid, {
         purchaseId: purchase.id,
@@ -593,7 +626,16 @@ export class CreditComponent implements OnInit, OnDestroy {
         paid: nextPaid
       });
     } catch (err: any) {
+      this.logAdvanceInstallmentError(err, {
+        purchaseId: purchase.id,
+        installmentId,
+        amount: Number(inst.amount ?? 0),
+        dueDate: inst.dueDate ?? null,
+        paid: nextPaid
+      });
       this.notifications.error('Não foi possível concluir. Tente novamente.');
+    } finally {
+      this.installmentRequests.delete(requestKey);
     }
   }
 
@@ -617,6 +659,13 @@ export class CreditComponent implements OnInit, OnDestroy {
           paid: true
         });
       } catch (err: any) {
+        this.logAdvanceInstallmentError(err, {
+          purchaseId: purchase.id,
+          installmentId: inst.id,
+          amount: Number(inst.amount ?? 0),
+          dueDate: inst.dueDate ?? null,
+          paid: true
+        });
         this.notifications.error('Não foi possível concluir. Tente novamente.');
         return;
       }
@@ -807,6 +856,27 @@ export class CreditComponent implements OnInit, OnDestroy {
       return 1;
     }
     return Math.min(Math.max(parsed, 1), 48);
+  }
+
+  private getInstallmentKey(purchaseId: string, inst: CreditInstallment): string {
+    return inst.id || `${purchaseId}-${inst.installmentNumber}`;
+  }
+
+  private logAdvanceInstallmentError(
+    err: any,
+    payload: {
+      purchaseId: string;
+      installmentId: string;
+      amount: number;
+      dueDate: string | null;
+      paid: boolean;
+    }
+  ) {
+    console.error('[advanceInstallment] error', {
+      message: err?.message,
+      stack: err?.stack,
+      payload
+    });
   }
 
   private async runReconcile() {

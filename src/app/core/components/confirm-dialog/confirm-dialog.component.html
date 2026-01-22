@@ -1,0 +1,36 @@
+<div
+  class="confirm-overlay"
+  *ngIf="confirm$ | async as state"
+  (click)="onCancel()"
+  aria-live="polite"
+>
+  <div
+    class="confirm-card glass-card"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="state.title"
+    data-confirm-dialog
+    (click)="stop($event)"
+  >
+    <div class="confirm-header">
+      <i *ngIf="state.icon" class="bi" [class]="state.icon"></i>
+      <h5 class="confirm-title">{{ state.title }}</h5>
+    </div>
+    <div class="confirm-message">{{ state.message }}</div>
+    <div class="confirm-actions">
+      <button class="btn btn-outline-light" type="button" (click)="onCancel()">
+        {{ state.cancelText || 'Cancelar' }}
+      </button>
+      <button
+        class="btn"
+        [class.btn-danger]="state.tone === 'danger'"
+        [class.btn-primary]="state.tone !== 'danger'"
+        type="button"
+        data-confirm-primary
+        (click)="onConfirm()"
+      >
+        {{ state.confirmText || 'Confirmar' }}
+      </button>
+    </div>
+  </div>
+</div>

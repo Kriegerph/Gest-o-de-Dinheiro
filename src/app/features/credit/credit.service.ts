@@ -280,146 +280,197 @@ export class CreditService {
   ): Promise<void> {
     const { purchaseId, installmentId, accountId, paid } = input;
     const purchaseRef = doc(this.firestore, `users/${uid}/creditPurchases/${purchaseId}`);
-    const installmentRef = doc(
-      this.firestore,
-      `users/${uid}/creditInstallments/${installmentId}`
-    );
+    const installmentRef = doc(this.firestore, `users/${uid}/creditInstallments/${installmentId}`);
     let existingMovementId: string | null = null;
+    let logInstallment: CreditInstallment | null = null;
 
-    if (paid) {
-      const installmentSnap = await getDoc(installmentRef);
-      if (installmentSnap.exists()) {
-        const installment = installmentSnap.data() as CreditInstallment;
-        const installmentKey = Number(installment.installmentNumber ?? 0);
-        const normalizedKey =
-          Number.isFinite(installmentKey) && installmentKey > 0 ? installmentKey : null;
-        if (!installment.paymentMovementId && normalizedKey !== null) {
-          existingMovementId = await this.findExistingInstallmentMovement(
-            uid,
-            accountId,
-            purchaseId,
-            normalizedKey
-          );
-        }
-      }
-    }
-
-    await runTransaction(this.firestore, async (tx) => {
-      const [purchaseSnap, installmentSnap] = await Promise.all([
-        tx.get(purchaseRef),
-        tx.get(installmentRef)
-      ]);
-
-      if (!installmentSnap.exists()) {
-        throw new Error('Parcela não encontrada');
-      }
-
-      const purchase = purchaseSnap.exists() ? (purchaseSnap.data() as CreditPurchase) : null;
-      const installment = installmentSnap.data() as CreditInstallment;
-      const alreadyPaid = Boolean(installment.paid);
-      const movementId = installment.paymentMovementId ?? null;
-
+    try {
       if (paid) {
-        if (alreadyPaid && movementId) {
-          return;
+        const installmentSnap = await getDoc(installmentRef);
+        if (installmentSnap.exists()) {
+          const installment = installmentSnap.data() as CreditInstallment;
+          logInstallment = installment;
+          const installmentKey = Number(installment.installmentNumber ?? 0);
+          const normalizedKey =
+            Number.isFinite(installmentKey) && installmentKey > 0 ? installmentKey : null;
+          if (!installment.paymentMovementId) {
+            try {
+              existingMovementId = await this.findExistingInstallmentMovement(uid, {
+                installmentId,
+                purchaseId,
+                accountId,
+                installmentKey: normalizedKey
+              });
+            } catch (lookupErr: any) {
+              console.error('[advanceInstallment] movement lookup failed', {
+                message: lookupErr?.message,
+                stack: lookupErr?.stack,
+                payload: {
+                  purchaseId,
+                  installmentId,
+                  accountId,
+                  installmentKey: normalizedKey
+                }
+              });
+            }
+          }
+        }
+      }
+
+      await runTransaction(this.firestore, async (tx) => {
+        const [purchaseSnap, installmentSnap] = await Promise.all([
+          tx.get(purchaseRef),
+          tx.get(installmentRef)
+        ]);
+
+        if (!installmentSnap.exists()) {
+          throw new Error('Parcela nao encontrada');
         }
 
-        if (movementId && !alreadyPaid) {
+        const purchase = purchaseSnap.exists() ? (purchaseSnap.data() as CreditPurchase) : null;
+        const installment = installmentSnap.data() as CreditInstallment;
+        const alreadyPaid = Boolean(installment.paid);
+        const movementId = installment.paymentMovementId ?? null;
+
+        if (paid) {
+          if (alreadyPaid && movementId) {
+            return;
+          }
+
+          if (movementId && !alreadyPaid) {
+            tx.update(installmentRef, {
+              paid: true,
+              paidAt: installment.paidAt ?? serverTimestamp()
+            });
+            return;
+          }
+
+          if (existingMovementId) {
+            tx.update(installmentRef, {
+              paid: true,
+              paidAt: installment.paidAt ?? serverTimestamp(),
+              paymentMovementId: existingMovementId
+            });
+            return;
+          }
+
+          const paymentDate = toYmdFromLocalDate(new Date());
+          const amount = Number(installment.amount ?? 0);
+          if (!Number.isFinite(amount) || amount <= 0) {
+            throw new Error('Valor invalido');
+          }
+
+          const txRef = doc(collection(this.firestore, `users/${uid}/transactions`));
+          const suffix =
+            purchase && purchase.installmentsCount
+              ? ` (${installment.installmentNumber}/${purchase.installmentsCount})`
+              : '';
+          const description = `Parcela cartão - ${purchase?.description ?? 'Compra'}${suffix}`;
+          const rawInstallmentKey = Number(installment.installmentNumber ?? 0);
+          const installmentKey =
+            Number.isFinite(rawInstallmentKey) && rawInstallmentKey > 0 ? rawInstallmentKey : null;
+
+          tx.set(txRef, {
+            type: 'expense',
+            description,
+            amount,
+            date: paymentDate,
+            dueDate: installment.dueDate ?? null,
+            categoryId: purchase?.categoryId || null,
+            accountId,
+            accountOriginId: null,
+            accountDestinationId: null,
+            notes: 'Pagamento manual de parcela (Crédito)',
+            source: 'credit_installment_payment',
+            purchaseId,
+            installmentKey,
+            installmentId,
+            createdAt: serverTimestamp()
+          });
+
           tx.update(installmentRef, {
             paid: true,
-            paidAt: installment.paidAt ?? serverTimestamp()
+            paidAt: serverTimestamp(),
+            paymentMovementId: txRef.id
           });
           return;
         }
 
-        if (existingMovementId) {
-          tx.update(installmentRef, {
-            paid: true,
-            paidAt: installment.paidAt ?? serverTimestamp(),
-            paymentMovementId: existingMovementId
-          });
+        if (!alreadyPaid) {
           return;
         }
 
-        const paymentDate = toYmdFromLocalDate(new Date());
-        const amount = Number(installment.amount ?? 0);
-        if (!Number.isFinite(amount) || amount <= 0) {
-          throw new Error('Valor inválido');
+        if (movementId) {
+          const movementRef = doc(this.firestore, `users/${uid}/transactions/${movementId}`);
+          tx.delete(movementRef);
         }
-
-        const txRef = doc(collection(this.firestore, `users/${uid}/transactions`));
-        const suffix =
-          purchase && purchase.installmentsCount
-            ? ` (${installment.installmentNumber}/${purchase.installmentsCount})`
-            : '';
-        const description = `Parcela cartao - ${purchase?.description ?? 'Compra'}${suffix}`;
-        const rawInstallmentKey = Number(installment.installmentNumber ?? 0);
-        const installmentKey =
-          Number.isFinite(rawInstallmentKey) && rawInstallmentKey > 0 ? rawInstallmentKey : null;
-
-        tx.set(txRef, {
-          type: 'expense',
-          description,
-          amount,
-          date: paymentDate,
-          dueDate: installment.dueDate ?? null,
-          categoryId: purchase?.categoryId || null,
-          accountId,
-          accountOriginId: null,
-          accountDestinationId: null,
-          notes: 'Pagamento manual de parcela (Crédito)',
-          source: 'credit_installment_payment',
-          purchaseId,
-          installmentKey,
-          installmentId,
-          createdAt: serverTimestamp()
-        });
 
         tx.update(installmentRef, {
-          paid: true,
-          paidAt: serverTimestamp(),
-          paymentMovementId: txRef.id
+          paid: false,
+          paidAt: undefined,
+          paymentMovementId: null
         });
-        return;
-      }
-
-      if (!alreadyPaid) {
-        return;
-      }
-
-      if (movementId) {
-        const movementRef = doc(this.firestore, `users/${uid}/transactions/${movementId}`);
-        tx.delete(movementRef);
-      }
-
-      tx.update(installmentRef, {
-        paid: false,
-        paidAt: undefined,
-        paymentMovementId: null
       });
-    });
+    } catch (err: any) {
+      console.error('[advanceInstallment] error', {
+        message: err?.message,
+        stack: err?.stack,
+        payload: {
+          purchaseId,
+          installmentId,
+          accountId,
+          paid,
+          amount: logInstallment?.amount,
+          dueDate: logInstallment?.dueDate
+        }
+      });
+      throw err;
+    }
   }
 
   private async findExistingInstallmentMovement(
     uid: string,
-    accountId: string,
-    purchaseId: string,
-    installmentKey: number
+    input: {
+      installmentId?: string;
+      purchaseId?: string;
+      accountId?: string;
+      installmentKey?: number | null;
+    }
   ): Promise<string | null> {
     const ref = collection(this.firestore, `users/${uid}/transactions`);
-    const q = query(
-      ref,
-      where('source', '==', 'credit_installment_payment'),
-      where('purchaseId', '==', purchaseId),
-      where('installmentKey', '==', installmentKey),
-      where('accountId', '==', accountId),
-      orderBy('createdAt', 'desc'),
-      limit(1)
-    );
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      return snap.docs[0].id;
+    if (input.installmentId) {
+      const byInstallment = query(
+        ref,
+        where('source', '==', 'credit_installment_payment'),
+        where('installmentId', '==', input.installmentId),
+        limit(1)
+      );
+      const snap = await getDocs(byInstallment);
+      if (!snap.empty) {
+        return snap.docs[0].id;
+      }
     }
+
+    if (
+      input.purchaseId &&
+      input.accountId &&
+      input.installmentKey &&
+      Number.isFinite(input.installmentKey)
+    ) {
+      const byLegacyKey = query(
+        ref,
+        where('source', '==', 'credit_installment_payment'),
+        where('purchaseId', '==', input.purchaseId),
+        where('installmentKey', '==', input.installmentKey),
+        where('accountId', '==', input.accountId),
+        limit(1)
+      );
+      const snap = await getDocs(byLegacyKey);
+      if (!snap.empty) {
+        return snap.docs[0].id;
+      }
+    }
+
     return null;
   }
 

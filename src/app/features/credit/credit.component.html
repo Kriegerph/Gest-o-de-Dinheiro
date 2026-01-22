@@ -307,8 +307,12 @@
                     class="btn btn-sm mt-2"
                     [class.btn-outline-success]="!installment.paid"
                     [class.btn-success]="installment.paid"
+                    [disabled]="isInstallmentBusy(purchase, installment)"
                     (click)="toggleInstallmentPaid(purchase, installment)">
-                    <i class="bi"
+                    <span *ngIf="isInstallmentBusy(purchase, installment)"
+                      class="spinner-border spinner-border-sm"></span>
+                    <i *ngIf="!isInstallmentBusy(purchase, installment)"
+                      class="bi"
                       [class.bi-check2-circle]="!installment.paid"
                       [class.bi-check2-circle-fill]="installment.paid"></i>
                   </button>

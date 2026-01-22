@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
+export type ConfirmTone = 'danger' | 'default';
 
 export type Toast = {
   id: string;
@@ -17,12 +18,30 @@ export type ToastOptions = {
   action?: () => void;
 };
 
+export type ConfirmOptions = {
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  tone?: ConfirmTone;
+  icon?: string;
+};
+
+type ConfirmState = ConfirmOptions & {
+  id: string;
+  resolve: (value: boolean) => void;
+};
+
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private readonly toastsSubject = new BehaviorSubject<Toast[]>([]);
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly confirmSubject = new BehaviorSubject<ConfirmState | null>(null);
+  private readonly confirmQueue: ConfirmState[] = [];
+  private activeConfirm: ConfirmState | null = null;
 
   readonly toasts$ = this.toastsSubject.asObservable();
+  readonly confirm$ = this.confirmSubject.asObservable();
 
   success(message: string, options?: ToastOptions) {
     this.show('success', message, options);
@@ -38,6 +57,45 @@ export class NotificationService {
 
   warning(message: string, options?: ToastOptions) {
     this.show('warning', message, options);
+  }
+
+  confirm(options: ConfirmOptions): Promise<boolean> {
+    return new Promise((resolve) => {
+      const state: ConfirmState = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        title: options.title,
+        message: options.message,
+        confirmText: options.confirmText ?? 'Confirmar',
+        cancelText: options.cancelText ?? 'Cancelar',
+        tone: options.tone ?? 'default',
+        icon: options.icon,
+        resolve
+      };
+
+      if (this.activeConfirm) {
+        this.confirmQueue.push(state);
+        return;
+      }
+
+      this.openConfirm(state);
+    });
+  }
+
+  resolveConfirm(result: boolean) {
+    if (!this.activeConfirm) {
+      return;
+    }
+    const current = this.activeConfirm;
+    this.activeConfirm = null;
+    this.confirmSubject.next(null);
+    current.resolve(result);
+
+    if (this.confirmQueue.length > 0) {
+      const next = this.confirmQueue.shift() ?? null;
+      if (next) {
+        this.openConfirm(next);
+      }
+    }
   }
 
   show(type: ToastType, message: string, options?: ToastOptions) {
@@ -71,5 +129,10 @@ export class NotificationService {
       clearTimeout(timer);
       this.timers.delete(id);
     }
+  }
+
+  private openConfirm(state: ConfirmState) {
+    this.activeConfirm = state;
+    this.confirmSubject.next(state);
   }
 }

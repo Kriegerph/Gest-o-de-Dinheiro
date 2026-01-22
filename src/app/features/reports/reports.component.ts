@@ -395,7 +395,7 @@ export class ReportsComponent {
           const paidTotal = paidByCard.get(cardId) ?? 0;
           return {
             cardId,
-            cardName: cardMap.get(cardId)?.name || 'Cartao',
+            cardName: cardMap.get(cardId)?.name || 'Cartão',
             summary: {
               ...cardSummary,
               paid: paidTotal,
@@ -417,7 +417,7 @@ export class ReportsComponent {
 
       const buildBillRow = (inst: CreditInstallment): CreditBillRow => {
         const purchase = purchaseMap.get(inst.purchaseId || '');
-        const cardName = cardMap.get(inst.cardId)?.name || 'Cartao';
+        const cardName = cardMap.get(inst.cardId)?.name || 'Cartão';
         const categoryName = purchase?.categoryId
           ? categoryMap.get(purchase.categoryId)?.name || '—'
           : '—';
@@ -450,7 +450,7 @@ export class ReportsComponent {
 
       const buildPaymentRow = (inst: CreditInstallment): CreditPaymentRow => {
         const purchase = purchaseMap.get(inst.purchaseId || '');
-        const cardName = cardMap.get(inst.cardId)?.name || 'Cartao';
+        const cardName = cardMap.get(inst.cardId)?.name || 'Cartão';
         const accountId = inst.paymentAccountId || cardMap.get(inst.cardId || '')?.paymentAccountId || '';
         const accountName = accountMap.get(accountId || '')?.name || '—';
         const paidAt = this.toYmd(inst.paidAt);
@@ -491,7 +491,7 @@ export class ReportsComponent {
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
 
-      const cardLabel = selectedCardId ? cardMap.get(selectedCardId)?.name || 'Cartao' : 'Todos';
+      const cardLabel = selectedCardId ? cardMap.get(selectedCardId)?.name || 'Cartão' : 'Todos';
       const periodLabel = `${String(filters.month).padStart(2, '0')}/${filters.year}`;
       const hasData = dueInstallments.length > 0 || paidInstallments.length > 0;
 
@@ -600,7 +600,7 @@ export class ReportsComponent {
       });
       const saldoInicialTotal = this.getSaldoInicialTotal(accounts);
       const yearMonth = start ? start.slice(0, 7) : this.buildCurrentYearMonth();
-      const fileName = this.buildFileName('periodo', yearMonth);
+      const fileName = this.buildFileName('período', yearMonth);
 
       await this.reportExportService.exportRelatorioXlsx({
         titulo: 'Relat\u00f3rio',
@@ -769,7 +769,7 @@ export class ReportsComponent {
           row.installmentLabel,
           row.accountName
         ]);
-        this.exportCsvCustom(headers, rows, this.buildFileName('cartao_pagamentos', yearMonth));
+        this.exportCsvCustom(headers, rows, this.buildFileName('cartão_pagamentos', yearMonth));
       } else {
         const headers = [
           'Cartão',
@@ -793,7 +793,7 @@ export class ReportsComponent {
           row.paidAt ? this.formatDateShort(row.paidAt) : '',
           row.accountName
         ]);
-        this.exportCsvCustom(headers, rows, this.buildFileName('cartao_fatura', yearMonth));
+        this.exportCsvCustom(headers, rows, this.buildFileName('cartão_fatura', yearMonth));
       }
       this.notifications.success('Salvo com sucesso');
     } catch (err: any) {
@@ -1165,7 +1165,7 @@ export class ReportsComponent {
       ]);
 
       await this.reportExportService.exportRelatorioCartaoXlsx({
-        fileName: this.buildFileName('cartao', yearMonth),
+        fileName: this.buildFileName('cartão', yearMonth),
         sheets: [
           {
             name: 'Resumo',

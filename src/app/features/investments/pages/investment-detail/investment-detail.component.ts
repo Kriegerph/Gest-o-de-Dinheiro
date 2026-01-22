@@ -32,6 +32,7 @@ import { Account } from '../../../../core/models/account.model';
 import {
   formatPtBrFromYmd,
   localDateFromYmd,
+  toLocalDateKey,
   toYmdFromLocalDate
 } from '../../../../shared/utils/date.util';
 import { environment } from '../../../../../environments/environment';
@@ -344,7 +345,7 @@ export class InvestmentDetailComponent {
       this.notifications.success('Aporte registrado com sucesso.');
       this.closeDeposit();
     } catch (err: any) {
-      this.notifications.error('Não foi possivel concluir. Tente novamente.');
+      this.notifications.error('Não foi possível concluir. Tente novamente.');
     } finally {
       this.submittingDeposit = false;
     }
@@ -501,7 +502,8 @@ export class InvestmentDetailComponent {
 
   private buildView(investment: Investment, context: IndexContext): InvestmentDetailView {
     const calc = this.calculator.calculate(investment, context);
-    const updatedLabel = calc.updatedAt ? formatPtBrFromYmd(calc.updatedAt) : '-';
+    const updatedAt = investment.lastYieldCalculationAt || calc.updatedAt;
+    const updatedLabel = this.buildUpdatedLabel(updatedAt);
     return {
       ...investment,
       ...calc,
@@ -586,5 +588,16 @@ export class InvestmentDetailComponent {
       type: 'income',
       color: '#22c55e'
     });
+  }
+
+  private buildUpdatedLabel(ymd: string | null): string {
+    if (!ymd) {
+      return '-';
+    }
+    const todayKey = toLocalDateKey(new Date());
+    if (ymd === todayKey) {
+      return 'hoje';
+    }
+    return formatPtBrFromYmd(ymd);
   }
 }

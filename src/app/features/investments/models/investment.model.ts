@@ -16,10 +16,14 @@ export interface Investment {
   preAppYield: number;
   totalInvestedToDate?: number | null;
   currentValueAtOnboarding?: number | null;
+  onboardingDate?: string | null;
   yieldMode: InvestmentYieldMode;
   manualRate?: number | null;
   cdiPercent?: number | null;
   compounding?: InvestmentCompounding | null;
+  lastYieldCalculationAt?: string | null;
+  postAppYield?: number | null;
+  currentValueEstimated?: number | null;
   createdAt?: any;
   updatedAt?: any;
   lastCalculatedAt?: string | null;

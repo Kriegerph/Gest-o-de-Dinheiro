@@ -1,10 +1,11 @@
-import { Component, OnDestroy, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   BehaviorSubject,
   catchError,
   combineLatest,
+  debounceTime,
   firstValueFrom,
   map,
   of,
@@ -18,6 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CategoriesService } from '../../core/services/categories.service';
 import { AccountsService } from '../../core/services/accounts.service';
 import { Account } from '../../core/models/account.model';
+import { Category } from '../../core/models/category.model';
 import { Transaction, TransactionType } from '../../core/models/transaction.model';
 import { formatPtBrFromYmd, toYmd, toYmdFromLocalDate } from '../../shared/utils/date.util';
 import { NotificationService } from '../../core/services/notification.service';
@@ -26,6 +28,26 @@ type PendingDelete = {
   tx: Transaction;
   uid: string;
   timer: ReturnType<typeof setTimeout>;
+};
+
+type TransactionFilterType = 'all' | 'income' | 'expense';
+
+type TransactionFiltersFormValue = {
+  categoryId: string | null;
+  type: TransactionFilterType | null;
+  accountId: string | null;
+  q: string | null;
+  dateFrom: string | null;
+  dateTo: string | null;
+};
+
+type TransactionFilters = {
+  categoryId: string | null;
+  type: TransactionFilterType;
+  accountId: string | null;
+  q: string;
+  dateFrom: string | null;
+  dateTo: string | null;
 };
 
 @Component({
@@ -60,6 +82,47 @@ export class TransactionsComponent implements OnDestroy {
   accounts$ = this.auth.user$.pipe(
     switchMap((user) => (user ? this.accountsService.list$(user.uid) : of([]))),
     map((items) => items ?? [])
+  );
+
+  private readonly filterDefaults: TransactionFilters = {
+    categoryId: null,
+    type: 'all',
+    accountId: null,
+    q: '',
+    dateFrom: null,
+    dateTo: null
+  };
+
+  filtersForm = this.fb.group({
+    categoryId: new FormControl<string | null>(this.filterDefaults.categoryId),
+    type: new FormControl<TransactionFilterType>(this.filterDefaults.type),
+    accountId: new FormControl<string | null>(this.filterDefaults.accountId),
+    q: new FormControl<string>(this.filterDefaults.q),
+    dateFrom: new FormControl<string | null>(this.filterDefaults.dateFrom),
+    dateTo: new FormControl<string | null>(this.filterDefaults.dateTo)
+  });
+
+  filtersDraftForm = this.fb.group({
+    categoryId: new FormControl<string | null>(this.filterDefaults.categoryId),
+    type: new FormControl<TransactionFilterType>(this.filterDefaults.type),
+    accountId: new FormControl<string | null>(this.filterDefaults.accountId),
+    q: new FormControl<string>(this.filterDefaults.q),
+    dateFrom: new FormControl<string | null>(this.filterDefaults.dateFrom),
+    dateTo: new FormControl<string | null>(this.filterDefaults.dateTo)
+  });
+
+  isFiltersOpen = false;
+
+  filters$ = this.filtersForm.valueChanges.pipe(
+    debounceTime(200),
+    startWith(this.filtersForm.getRawValue()),
+    map((value) => this.normalizeFilters(value as TransactionFiltersFormValue))
+  );
+
+  hasActiveFilters$ = this.filters$.pipe(map((filters) => this.isActiveFilters(filters)));
+
+  activeFilterChips$ = combineLatest([this.filters$, this.categories$, this.accounts$]).pipe(
+    map(([filters, categories, accounts]) => this.buildFilterChips(filters, categories, accounts))
   );
 
   transactions$ = this.auth.user$.pipe(
@@ -101,10 +164,15 @@ export class TransactionsComponent implements OnDestroy {
     })
   );
 
+  filteredTransactions$ = combineLatest([this.transactions$, this.filters$, this.categories$]).pipe(
+    map(([items, filters, categories]) => this.applyFilters(items, filters, categories))
+  );
 
-  transactionsView$ = combineLatest([this.transactions$, this.pendingDeleteIds$]).pipe(
+  transactionsView$ = combineLatest([this.filteredTransactions$, this.pendingDeleteIds$]).pipe(
     map(([items, pendingIds]) => items.filter((tx) => !pendingIds.has(tx.id ?? '')))
   );
+
+  transactionsCount$ = this.transactionsView$.pipe(map((items) => items.length));
 
   form = this.fb.group({
     type: new FormControl<TransactionType | null>(null, Validators.required),
@@ -192,6 +260,15 @@ export class TransactionsComponent implements OnDestroy {
     const current = this.form.get('type')?.value ?? null;
     this.form.get('type')?.setValue(current === next ? null : next);
     this.form.get('type')?.markAsTouched();
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  handleEscape(event: Event) {
+    if (!this.isFiltersOpen) {
+      return;
+    }
+    event.preventDefault();
+    this.closeFilters();
   }
 
   ngOnDestroy(): void {
@@ -299,9 +376,53 @@ export class TransactionsComponent implements OnDestroy {
     this.form.get('accountDestinationId')?.disable({ emitEvent: false });
   }
 
+  toggleFilters() {
+    if (this.isFiltersOpen) {
+      this.closeFilters();
+      return;
+    }
+    this.openFilters();
+  }
+
+  openFilters() {
+    this.filtersDraftForm.reset(this.filtersForm.getRawValue());
+    this.isFiltersOpen = true;
+  }
+
+  closeFilters() {
+    this.isFiltersOpen = false;
+  }
+
+  applyDraftFilters() {
+    this.filtersForm.reset(this.filtersDraftForm.getRawValue());
+    this.isFiltersOpen = false;
+  }
+
+  applyFiltersAndClose() {
+    this.applyDraftFilters();
+  }
+
+  clearFiltersAndClose() {
+    const hadActive = this.isActiveFilters(
+      this.normalizeFilters(this.filtersForm.getRawValue() as TransactionFiltersFormValue)
+    );
+    this.filtersDraftForm.reset(this.filterDefaults);
+    this.filtersForm.reset(this.filterDefaults);
+    if (hadActive) {
+      this.notifications.info('Filtros limpos.');
+    }
+    this.isFiltersOpen = false;
+  }
+
   async delete(tx: Transaction) {
     if (!tx.id) return;
-    const confirmed = confirm('Excluir este lançamento?');
+    const confirmed = await this.notifications.confirm({
+      title: 'Excluir lançamento?',
+      message: 'Essa ação remove o lançamento. Você pode desfazer nos próximos 5 segundos.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger'
+    });
     if (!confirmed) return;
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;
@@ -346,6 +467,101 @@ export class TransactionsComponent implements OnDestroy {
 
   formatDate(ymd: string): string {
     return formatPtBrFromYmd(ymd);
+  }
+
+  private normalizeFilters(value: TransactionFiltersFormValue | null | undefined): TransactionFilters {
+    return {
+      categoryId: value?.categoryId ?? null,
+      type: value?.type ?? this.filterDefaults.type,
+      accountId: value?.accountId ?? null,
+      q: (value?.q ?? '').toString().trim(),
+      dateFrom: normalizeDateInput(value?.dateFrom ?? null),
+      dateTo: normalizeDateInput(value?.dateTo ?? null)
+    };
+  }
+
+  private isActiveFilters(filters: TransactionFilters): boolean {
+    return Boolean(
+      filters.categoryId ||
+      filters.accountId ||
+      (filters.type && filters.type !== 'all') ||
+      normalizeText(filters.q) ||
+      filters.dateFrom ||
+      filters.dateTo
+    );
+  }
+
+  private buildFilterChips(filters: TransactionFilters, categories: Category[], accounts: Account[]): string[] {
+    const chips: string[] = [];
+    if (filters.categoryId) {
+      const categoryName = categories.find((item) => item.id === filters.categoryId)?.name ?? 'Categoria';
+      chips.push(`Categoria: ${categoryName}`);
+    }
+    if (filters.type && filters.type !== 'all') {
+      chips.push(`Tipo: ${filters.type === 'income' ? 'Entrada' : 'Saida'}`);
+    }
+    if (filters.accountId) {
+      const accountName = accounts.find((item) => item.id === filters.accountId)?.name ?? 'Conta';
+      chips.push(`Conta: ${accountName}`);
+    }
+    if (filters.q) {
+      chips.push(`Busca: ${filters.q}`);
+    }
+    if (filters.dateFrom) {
+      chips.push(`De: ${formatPtBrFromYmd(filters.dateFrom)}`);
+    }
+    if (filters.dateTo) {
+      chips.push(`Ate: ${formatPtBrFromYmd(filters.dateTo)}`);
+    }
+    return chips;
+  }
+
+  private applyFilters(items: Transaction[], filters: TransactionFilters, categories: Category[]): Transaction[] {
+    if (!items.length) return items;
+    const q = normalizeText(filters.q);
+    const categoryNameById = new Map(
+      categories.map((category) => [category.id ?? '', normalizeText(category.name)])
+    );
+    return items.filter((tx) => {
+      if (filters.dateFrom || filters.dateTo) {
+        const dateKey = normalizeTxDateToKey(tx);
+        if (!dateKey) {
+          return false;
+        }
+        if (filters.dateFrom && dateKey < filters.dateFrom) {
+          return false;
+        }
+        if (filters.dateTo && dateKey > filters.dateTo) {
+          return false;
+        }
+      }
+      if (filters.categoryId && tx.categoryId !== filters.categoryId) {
+        return false;
+      }
+      if (filters.type && filters.type !== 'all' && tx.type !== filters.type) {
+        return false;
+      }
+      if (filters.accountId) {
+        const matchesAccount =
+          tx.accountId === filters.accountId ||
+          tx.accountOriginId === filters.accountId ||
+          tx.accountDestinationId === filters.accountId;
+        if (!matchesAccount) {
+          return false;
+        }
+      }
+      if (q) {
+        const categoryName = categoryNameById.get(tx.categoryId ?? '') ?? '';
+        const matchesQuery =
+          normalizeText(tx.description).includes(q) ||
+          normalizeText(tx.notes).includes(q) ||
+          categoryName.includes(q);
+        if (!matchesQuery) {
+          return false;
+        }
+      }
+      return true;
+    });
   }
 
   private refreshPendingIds() {
@@ -417,5 +633,51 @@ function stableHashId(id?: string | null): number {
     acc = (acc * 31 + id.charCodeAt(i)) >>> 0;
   }
   return acc;
+}
+
+function normalizeText(value?: string | null): string {
+  return (value ?? '').toString().toLowerCase().trim();
+}
+
+function normalizeDateInput(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.toString().trim();
+  return trimmed ? trimmed : null;
+}
+
+function normalizeTxDateToKey(tx: Transaction): string {
+  const raw = (tx as any).date ?? (tx as any).data;
+  return normalizeDateKey(raw);
+}
+
+function normalizeDateKey(value: any): string {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+    const brMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+    if (brMatch) {
+      return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+    }
+    const parsed = Date.parse(trimmed);
+    if (Number.isFinite(parsed)) {
+      return toYmdFromLocalDate(new Date(parsed));
+    }
+  }
+  if (typeof value?.toDate === 'function') {
+    return toYmdFromLocalDate(value.toDate());
+  }
+  if (typeof value?.toMillis === 'function') {
+    return toYmdFromLocalDate(new Date(value.toMillis()));
+  }
+  if (value instanceof Date) {
+    return toYmdFromLocalDate(value);
+  }
+  if (typeof value === 'number') {
+    return toYmdFromLocalDate(new Date(value));
+  }
+  return '';
 }
 

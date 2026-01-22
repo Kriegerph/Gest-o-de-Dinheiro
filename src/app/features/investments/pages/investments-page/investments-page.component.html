@@ -85,7 +85,7 @@
             <input class="form-check-input" type="checkbox" id="investment-before-app"
               formControlName="hadBeforeApp" (change)="onBeforeAppToggle()" />
             <label class="form-check-label" for="investment-before-app">
-              Investimento ja existia antes do app?
+              Investimento já existia antes do app?
             </label>
           </div>
 
@@ -212,7 +212,9 @@
                     <div class="text-secondary small" *ngIf="item.placeholderUsed">
                       Taxa placeholder aplicada
                     </div>
-                    <div class="text-secondary small">Atualizado em {{ item.updatedLabel }}</div>
+                    <div class="text-secondary small">
+                      Atualizado {{ item.updatedLabel === 'hoje' ? 'hoje' : 'em ' + item.updatedLabel }}
+                    </div>
                   </td>
                   <td class="text-end">
                     <div class="fw-semibold" [class.text-success]="item.totalYield >= 0"

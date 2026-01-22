@@ -134,7 +134,13 @@ export class AccountsComponent {
   }
 
   async delete(account: Account) {
-    const confirmed = confirm(`Excluir conta "${account.name}"?`);
+    const confirmed = await this.notifications.confirm({
+      title: 'Excluir conta?',
+      message: `Excluir conta "${account.name}"? Essa ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger'
+    });
     if (!confirmed || !account.id) return;
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;

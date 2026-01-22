@@ -14,3 +14,119 @@
 .glass-input:focus {
   box-shadow: 0 0 0 0.25rem rgba(34, 211, 238, 0.2);
 }
+
+.transactions-grid {
+  align-items: stretch;
+}
+
+.transactions-list-col {
+  min-height: 0;
+}
+
+.filters-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e5e7eb;
+}
+
+.history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.history-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.history-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.list-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.history-scroll .table-responsive {
+  min-height: 0;
+}
+
+.history-scroll .app-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+}
+
+.filters-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.filters-toggle.active {
+  border-color: rgba(34, 211, 238, 0.6);
+  box-shadow: 0 0 0 0.2rem rgba(34, 211, 238, 0.15);
+}
+
+.filters-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.25);
+  z-index: 9990;
+}
+
+.filters-popover {
+  position: absolute;
+  right: 0;
+  left: auto;
+  top: calc(100% + 10px);
+  z-index: 9999;
+  width: min(520px, calc(100vw - 2rem));
+}
+
+.filters-panel {
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 992px) {
+  .transactions-list-col {
+    position: relative;
+  }
+
+  .transactions-list-col .list-card {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+  }
+}

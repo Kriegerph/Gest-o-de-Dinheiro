@@ -22,7 +22,11 @@ import {
   InvestmentType
 } from '../../models/investment.model';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { formatPtBrFromYmd, toYmdFromLocalDate } from '../../../../shared/utils/date.util';
+import {
+  formatPtBrFromYmd,
+  toLocalDateKey,
+  toYmdFromLocalDate
+} from '../../../../shared/utils/date.util';
 import { Account } from '../../../../core/models/account.model';
 
 type InvestmentView = Investment &
@@ -290,7 +294,7 @@ export class InvestmentsPageComponent {
         nextStatus === 'active' ? 'Investimento reativado.' : 'Investimento inativado.'
       );
     } catch (err: any) {
-      this.notifications.error('Nao foi possível concluír. Tente novamente.');
+      this.notifications.error('Não foi possível concluir. Tente novamente.');
     } finally {
       if (this.togglingId === investment.id) {
         this.togglingId = null;
@@ -609,10 +613,14 @@ export class InvestmentsPageComponent {
 
   private buildView(investments: Investment[], context: IndexContext): InvestmentsPageView {
     const summary = this.calculator.summarize(investments, context);
+    const summaryUpdatedAt =
+      this.pickLatestYmd(investments.map((investment) => investment.lastYieldCalculationAt)) ??
+      summary.updatedAt;
     const items = investments
       .map((investment) => {
         const calc = this.calculator.calculate(investment, context);
-        const updatedLabel = calc.updatedAt ? formatPtBrFromYmd(calc.updatedAt) : '-';
+        const updatedAt = investment.lastYieldCalculationAt || calc.updatedAt;
+        const updatedLabel = this.buildUpdatedLabel(updatedAt);
         return {
           ...investment,
           ...calc,
@@ -631,7 +639,8 @@ export class InvestmentsPageComponent {
     return {
       summary: {
         ...summary,
-        updatedLabel: summary.updatedAt ? formatPtBrFromYmd(summary.updatedAt) : '-'
+        updatedAt: summaryUpdatedAt,
+        updatedLabel: this.buildUpdatedLabel(summaryUpdatedAt)
       },
       items
     };
@@ -698,5 +707,24 @@ export class InvestmentsPageComponent {
       },
       items: []
     };
+  }
+
+  private buildUpdatedLabel(ymd: string | null): string {
+    if (!ymd) {
+      return '-';
+    }
+    const todayKey = toLocalDateKey(new Date());
+    if (ymd === todayKey) {
+      return 'hoje';
+    }
+    return formatPtBrFromYmd(ymd);
+  }
+
+  private pickLatestYmd(values: Array<string | null | undefined>): string | null {
+    const dates = values.filter((value): value is string => Boolean(value));
+    if (!dates.length) {
+      return null;
+    }
+    return dates.sort().slice(-1)[0];
   }
 }

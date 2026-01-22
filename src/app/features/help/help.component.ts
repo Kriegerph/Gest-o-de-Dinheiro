@@ -61,7 +61,7 @@ export class HelpComponent {
       notes: [
         'Saldo geral = soma dos saldos das contas (saldo inicial + entradas - saídas).',
         'Gráficos usam apenas lançamentos do mês atual.',
-        'Lançamentos sem conta nao entram no saldo por conta.'
+        'Lançamentos sem conta não entram no saldo por conta.'
       ]
     },
     {
@@ -143,7 +143,7 @@ export class HelpComponent {
     {
       id: 'relatorios',
       title: 'Relatórios',
-      summary: 'Analise por periodo com exportação.',
+      summary: 'Análise por período com exportação.',
       what: 'Gera resumo de entradas, saídas e saldo entre datas.',
       how: [
         'Defina a data inicial e final.',

@@ -112,7 +112,13 @@ export class CategoriesComponent {
   }
 
   async delete(category: Category) {
-    const confirmed = confirm(`Excluir categoria "${category.name}"?`);
+    const confirmed = await this.notifications.confirm({
+      title: 'Excluir categoria?',
+      message: `Excluir categoria "${category.name}"? Essa ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger'
+    });
     if (!confirmed || !category.id) return;
     const user = await firstValueFrom(this.auth.user$);
     if (!user) return;

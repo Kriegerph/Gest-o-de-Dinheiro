@@ -25,9 +25,9 @@
           <div class="kpi-sub">
             Rendimento total:
             {{
-              view.investments.totalYield === null
-                ? '-'
-                : (view.investments.totalYield | currency:'BRL':'symbol':'1.2-2':'pt-BR')
+            view.investments.totalYield === null
+            ? '-'
+            : (view.investments.totalYield | currency:'BRL':'symbol':'1.2-2':'pt-BR')
             }}
             <span *ngIf="view.investments.totalYieldPercent !== null">
               ({{ view.investments.totalYieldPercent | number:'1.0-2' }}%)
@@ -54,7 +54,8 @@
         <div class="glass-card kpi-card kpi-center">
           <div class="kpi-label">Total gasto no cartão</div>
           <div class="kpi-value">
-            {{ view.kpis.creditTotal === null ? '-' : (view.kpis.creditTotal | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
+            {{ view.kpis.creditTotal === null ? '-' : (view.kpis.creditTotal | currency:'BRL':'symbol':'1.2-2':'pt-BR')
+            }}
           </div>
           <div class="kpi-sub">Parcelas com vencimento no mês</div>
         </div>
@@ -65,7 +66,8 @@
           </div>
           <div class="kpi-sub">Pagamentos feitos neste mês</div>
           <div class="kpi-sub">
-            Fatura em aberto do mês: {{ view.kpis.billOpen === null ? '-' : (view.kpis.billOpen | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
+            Fatura em aberto do mês: {{ view.kpis.billOpen === null ? '-' : (view.kpis.billOpen |
+            currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
           </div>
         </div>
       </div>
@@ -104,7 +106,7 @@
       </div>
     </div>
 
-        <div class="col-lg-7">
+    <div class="col-lg-7">
       <div class="glass-card chart-card h-100">
         <div class="chart-header">
           <h6 class="fw-semibold mb-0">Evolução diária do saldo</h6>
@@ -112,16 +114,16 @@
         </div>
         <div class="chart-wrap">
           <ng-container *ngIf="!view.charts.dailyBalance.empty; else emptyLineTpl">
-            <svg class="chart-svg" [attr.viewBox]="view.charts.dailyBalance.viewBox" [attr.height]="view.charts.dailyBalance.height">
+            <svg class="chart-svg" [attr.viewBox]="view.charts.dailyBalance.viewBox"
+              [attr.height]="view.charts.dailyBalance.height">
               <g class="chart-grid">
-                <line *ngFor="let gridY of view.charts.dailyBalance.grid"
-                  [attr.x1]="0" [attr.x2]="view.charts.dailyBalance.width"
-                  [attr.y1]="gridY" [attr.y2]="gridY"></line>
+                <line *ngFor="let gridY of view.charts.dailyBalance.grid" [attr.x1]="0"
+                  [attr.x2]="view.charts.dailyBalance.width" [attr.y1]="gridY" [attr.y2]="gridY"></line>
               </g>
               <path class="chart-line" [attr.d]="view.charts.dailyBalance.path"></path>
               <g class="chart-labels">
-                <text *ngFor="let label of view.charts.dailyBalance.labels"
-                  [attr.x]="label.x" [attr.y]="view.charts.dailyBalance.labelY" text-anchor="middle">
+                <text *ngFor="let label of view.charts.dailyBalance.labels" [attr.x]="label.x"
+                  [attr.y]="view.charts.dailyBalance.labelY" text-anchor="middle">
                   {{ label.text }}
                 </text>
               </g>
@@ -144,7 +146,8 @@
           <div class="donut-layout">
             <div class="donut-chart" [style.background]="view.charts.categoryDonut.gradient"></div>
             <div class="donut-meta">
-              <div class="donut-total">{{ view.charts.categoryDonut.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+              <div class="donut-total">{{ view.charts.categoryDonut.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </div>
               <div class="text-secondary small">Total gasto</div>
             </div>
           </div>
@@ -162,7 +165,7 @@
       </div>
     </div>
 
-        <div class="col-12">
+    <div class="col-12">
       <div class="section-header">
         <div>
           <p class="text-uppercase text-primary small mb-1">Progresso do mês</p>
@@ -206,7 +209,8 @@
             <div class="progress-category-row" *ngFor="let item of view.monthProgress.topCategories">
               <div class="progress-category-name">{{ item.name }}</div>
               <div class="progress-category-bar">
-                <span class="progress-category-fill" [style.width.%]="item.percent" [style.background]="item.color"></span>
+                <span class="progress-category-fill" [style.width.%]="item.percent"
+                  [style.background]="item.color"></span>
               </div>
               <div class="progress-category-value">{{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
             </div>
@@ -228,13 +232,15 @@
           <div class="forecast-row">
             <span class="text-secondary">Média diária</span>
             <span>
-              {{ view.monthProgress.forecast.avgPerDay === null ? '-' : (view.monthProgress.forecast.avgPerDay | currency:'BRL':'symbol':'1.0-0':'pt-BR') }}
+              {{ view.monthProgress.forecast.avgPerDay === null ? '-' : (view.monthProgress.forecast.avgPerDay |
+              currency:'BRL':'symbol':'1.0-0':'pt-BR') }}
             </span>
           </div>
           <div class="forecast-row">
             <span class="text-secondary">Projeção total</span>
             <span>
-              {{ view.monthProgress.forecast.projectedTotal === null ? '-' : (view.monthProgress.forecast.projectedTotal | currency:'BRL':'symbol':'1.0-0':'pt-BR') }}
+              {{ view.monthProgress.forecast.projectedTotal === null ? '-' : (view.monthProgress.forecast.projectedTotal
+              | currency:'BRL':'symbol':'1.0-0':'pt-BR') }}
             </span>
           </div>
           <div class="forecast-row">
@@ -291,7 +297,8 @@
                   <div class="bar-fill" [style.width.%]="card.percent ?? 0"></div>
                 </div>
                 <small class="text-secondary">
-                  Disponível: {{ card.available === null ? '�' : (card.available | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
+                  Disponível: {{ card.available === null ? '�' : (card.available |
+                  currency:'BRL':'symbol':'1.2-2':'pt-BR') }}
                 </small>
               </div>
             </div>
@@ -401,7 +408,8 @@
                   <div class="bar-fill" [style.width.%]="budget.percent" [class.warning]="budget.percent >= 80"
                     [class.danger]="budget.percent >= 100"></div>
                 </div>
-                <small class="text-secondary">Restante: {{ budget.remaining | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</small>
+                <small class="text-secondary">Restante: {{ budget.remaining | currency:'BRL':'symbol':'1.2-2':'pt-BR'
+                  }}</small>
               </div>
             </div>
           </div>
@@ -462,11 +470,8 @@
               <div class="timeline-line"></div>
 
               <div class="timeline-node" *ngFor="let d of days; trackBy: trackByTimelineDay">
-                <div class="timeline-dot"
-                  [class.has-data]="d.hasData"
-                  [class.today]="d.isToday"
-                  [class.open]="openDay === d.day"
-                  (click)="$event.stopPropagation(); toggleDayTooltip(d.day)">
+                <div class="timeline-dot" [class.has-data]="d.hasData" [class.today]="d.isToday"
+                  [class.open]="openDay === d.day" (click)="$event.stopPropagation(); toggleDayTooltip(d.day)">
                   <div class="timeline-tooltip">
                     <div class="tt-date">{{ d.date | date:'dd/MM' }}</div>
 

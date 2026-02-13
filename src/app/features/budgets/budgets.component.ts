@@ -63,10 +63,10 @@ export class BudgetsComponent {
     switchMap(([user]) =>
       user
         ? this.transactionsService.listMonthExpensesByCategory$(
-            user.uid,
-            this.selectedMonth,
-            this.selectedYear
-          )
+          user.uid,
+          this.selectedMonth,
+          this.selectedYear
+        )
         : of({} as Record<string, number>)
     )
   );

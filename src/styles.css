@@ -27,15 +27,23 @@ body.no-page-scroll {
   overflow: hidden !important;
 }
 
+html.no-scroll,
+body.no-scroll {
+  height: 100%;
+  overflow: hidden !important;
+}
+
 a {
   color: inherit;
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-primary {
@@ -44,7 +52,8 @@ a {
 }
 
 .btn-primary:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.08);
+  box-shadow: 0 10px 25px rgba(34, 211, 238, 0.22);
 }
 
 .table {
@@ -60,6 +69,30 @@ a {
 .form-select:focus {
   border-color: rgba(99, 102, 241, 0.4);
   box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.18);
+}
+
+.btn {
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease, border-color 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-outline-light {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.btn-outline-light:hover {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+}
+
+.btn-sm {
+  border-radius: 10px;
 }
 
 /* ========= THEME TOKENS (dark) ========= */
@@ -88,14 +121,23 @@ a {
 }
 
 .table.app-table thead th {
-  background: var(--app-surface-2) !important;
-  border: 1px solid var(--app-border) !important;
+  background: linear-gradient(135deg, rgba(24, 40, 68, 0.9), rgba(19, 31, 51, 0.9)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   color: var(--app-text) !important;
+  letter-spacing: 0.02em;
+  padding: 0.75rem 0.9rem;
 }
 
 .table.app-table tbody tr {
-  background: var(--app-surface) !important;
-  border: 1px solid var(--app-border) !important;
+  background: rgba(19, 31, 51, 0.82) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.table.app-table tbody tr:hover {
+  background: rgba(29, 44, 72, 0.9) !important;
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.35);
+  transform: translateY(-1px);
 }
 
 .table.app-table tbody td {
@@ -123,9 +165,11 @@ a {
 .form-select,
 .input-group .form-control,
 .input-group .form-select {
-  background-color: rgba(19, 31, 51, 0.85) !important;
-  border-color: var(--app-border) !important;
+  background-color: rgba(19, 31, 51, 0.78) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
   color: var(--app-text) !important;
+  border-radius: 14px !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .form-control::placeholder {
@@ -135,15 +179,21 @@ a {
 
 .form-control:focus,
 .form-select:focus {
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.18) !important;
-  border-color: rgba(13, 110, 253, 0.55) !important;
+  box-shadow: 0 0 0 0.22rem rgba(99, 102, 241, 0.18) !important;
+  border-color: rgba(99, 102, 241, 0.55) !important;
+  background-color: rgba(19, 31, 51, 0.9) !important;
+}
+
+.form-control:hover,
+.form-select:hover {
+  border-color: rgba(255, 255, 255, 0.16) !important;
 }
 
 /* ========= SELECT / OPTIONS (dropdown) ========= */
 .form-select {
-  background-color: rgba(19, 31, 51, 0.85) !important;
+  background-color: rgba(19, 31, 51, 0.78) !important;
   color: var(--app-text) !important;
-  border-color: var(--app-border) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .form-select option {
@@ -187,6 +237,16 @@ a {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
+.app-table thead th {
+  letter-spacing: 0.02em;
+  padding: 0.75rem 0.9rem;
+}
+
+.app-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 26px rgba(2, 6, 23, 0.25);
+}
+
 .app-table tbody tr td:first-child {
   border-top-left-radius: 14px;
   border-bottom-left-radius: 14px;
@@ -216,6 +276,53 @@ a {
   gap: 8px;
   padding: 12px 0;
   color: var(--app-muted);
+}
+
+/* ========= TYPOGRAPHY ========= */
+h3 {
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+.form-label {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+small,
+.small {
+  letter-spacing: 0.01em;
+}
+
+/* ========= SCROLLBAR ========= */
+.history-scroll,
+.table-responsive {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.history-scroll::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.history-scroll::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.history-scroll::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.history-scroll::-webkit-scrollbar-thumb:hover,
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.55);
 }
 
 /* ========= SKELETONS ========= */

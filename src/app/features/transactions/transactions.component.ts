@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -30,22 +30,18 @@ type PendingDelete = {
   timer: ReturnType<typeof setTimeout>;
 };
 
-type TransactionFilterType = 'all' | 'income' | 'expense';
-
 type TransactionFiltersFormValue = {
   categoryId: string | null;
-  type: TransactionFilterType | null;
-  accountId: string | null;
-  q: string | null;
+  type: TransactionType | null;
+  search: string | null;
   dateFrom: string | null;
   dateTo: string | null;
 };
 
 type TransactionFilters = {
   categoryId: string | null;
-  type: TransactionFilterType;
-  accountId: string | null;
-  q: string;
+  type: TransactionType | null;
+  search: string;
   dateFrom: string | null;
   dateTo: string | null;
 };
@@ -86,32 +82,19 @@ export class TransactionsComponent implements OnDestroy {
 
   private readonly filterDefaults: TransactionFilters = {
     categoryId: null,
-    type: 'all',
-    accountId: null,
-    q: '',
+    type: null,
+    search: '',
     dateFrom: null,
     dateTo: null
   };
 
   filtersForm = this.fb.group({
     categoryId: new FormControl<string | null>(this.filterDefaults.categoryId),
-    type: new FormControl<TransactionFilterType>(this.filterDefaults.type),
-    accountId: new FormControl<string | null>(this.filterDefaults.accountId),
-    q: new FormControl<string>(this.filterDefaults.q),
+    type: new FormControl<TransactionType | null>(this.filterDefaults.type),
+    search: new FormControl<string>(this.filterDefaults.search),
     dateFrom: new FormControl<string | null>(this.filterDefaults.dateFrom),
     dateTo: new FormControl<string | null>(this.filterDefaults.dateTo)
   });
-
-  filtersDraftForm = this.fb.group({
-    categoryId: new FormControl<string | null>(this.filterDefaults.categoryId),
-    type: new FormControl<TransactionFilterType>(this.filterDefaults.type),
-    accountId: new FormControl<string | null>(this.filterDefaults.accountId),
-    q: new FormControl<string>(this.filterDefaults.q),
-    dateFrom: new FormControl<string | null>(this.filterDefaults.dateFrom),
-    dateTo: new FormControl<string | null>(this.filterDefaults.dateTo)
-  });
-
-  isFiltersOpen = false;
 
   filters$ = this.filtersForm.valueChanges.pipe(
     debounceTime(200),
@@ -121,8 +104,8 @@ export class TransactionsComponent implements OnDestroy {
 
   hasActiveFilters$ = this.filters$.pipe(map((filters) => this.isActiveFilters(filters)));
 
-  activeFilterChips$ = combineLatest([this.filters$, this.categories$, this.accounts$]).pipe(
-    map(([filters, categories, accounts]) => this.buildFilterChips(filters, categories, accounts))
+  activeFilterChips$ = combineLatest([this.filters$, this.categories$]).pipe(
+    map(([filters, categories]) => this.buildFilterChips(filters, categories))
   );
 
   transactions$ = this.auth.user$.pipe(
@@ -164,8 +147,8 @@ export class TransactionsComponent implements OnDestroy {
     })
   );
 
-  filteredTransactions$ = combineLatest([this.transactions$, this.filters$, this.categories$]).pipe(
-    map(([items, filters, categories]) => this.applyFilters(items, filters, categories))
+  filteredTransactions$ = combineLatest([this.transactions$, this.filters$]).pipe(
+    map(([items, filters]) => this.applyFilters(items, filters))
   );
 
   transactionsView$ = combineLatest([this.filteredTransactions$, this.pendingDeleteIds$]).pipe(
@@ -260,15 +243,6 @@ export class TransactionsComponent implements OnDestroy {
     const current = this.form.get('type')?.value ?? null;
     this.form.get('type')?.setValue(current === next ? null : next);
     this.form.get('type')?.markAsTouched();
-  }
-
-  @HostListener('document:keydown.escape', ['$event'])
-  handleEscape(event: Event) {
-    if (!this.isFiltersOpen) {
-      return;
-    }
-    event.preventDefault();
-    this.closeFilters();
   }
 
   ngOnDestroy(): void {
@@ -376,44 +350,6 @@ export class TransactionsComponent implements OnDestroy {
     this.form.get('accountDestinationId')?.disable({ emitEvent: false });
   }
 
-  toggleFilters() {
-    if (this.isFiltersOpen) {
-      this.closeFilters();
-      return;
-    }
-    this.openFilters();
-  }
-
-  openFilters() {
-    this.filtersDraftForm.reset(this.filtersForm.getRawValue());
-    this.isFiltersOpen = true;
-  }
-
-  closeFilters() {
-    this.isFiltersOpen = false;
-  }
-
-  applyDraftFilters() {
-    this.filtersForm.reset(this.filtersDraftForm.getRawValue());
-    this.isFiltersOpen = false;
-  }
-
-  applyFiltersAndClose() {
-    this.applyDraftFilters();
-  }
-
-  clearFiltersAndClose() {
-    const hadActive = this.isActiveFilters(
-      this.normalizeFilters(this.filtersForm.getRawValue() as TransactionFiltersFormValue)
-    );
-    this.filtersDraftForm.reset(this.filterDefaults);
-    this.filtersForm.reset(this.filterDefaults);
-    if (hadActive) {
-      this.notifications.info('Filtros limpos.');
-    }
-    this.isFiltersOpen = false;
-  }
-
   async delete(tx: Transaction) {
     if (!tx.id) return;
     const confirmed = await this.notifications.confirm({
@@ -473,8 +409,7 @@ export class TransactionsComponent implements OnDestroy {
     return {
       categoryId: value?.categoryId ?? null,
       type: value?.type ?? this.filterDefaults.type,
-      accountId: value?.accountId ?? null,
-      q: (value?.q ?? '').toString().trim(),
+      search: (value?.search ?? '').toString().trim(),
       dateFrom: normalizeDateInput(value?.dateFrom ?? null),
       dateTo: normalizeDateInput(value?.dateTo ?? null)
     };
@@ -483,45 +418,41 @@ export class TransactionsComponent implements OnDestroy {
   private isActiveFilters(filters: TransactionFilters): boolean {
     return Boolean(
       filters.categoryId ||
-      filters.accountId ||
-      (filters.type && filters.type !== 'all') ||
-      normalizeText(filters.q) ||
+      filters.type ||
+      normalizeText(filters.search) ||
       filters.dateFrom ||
       filters.dateTo
     );
   }
 
-  private buildFilterChips(filters: TransactionFilters, categories: Category[], accounts: Account[]): string[] {
+  private buildFilterChips(filters: TransactionFilters, categories: Category[]): string[] {
     const chips: string[] = [];
     if (filters.categoryId) {
       const categoryName = categories.find((item) => item.id === filters.categoryId)?.name ?? 'Categoria';
       chips.push(`Categoria: ${categoryName}`);
     }
-    if (filters.type && filters.type !== 'all') {
-      chips.push(`Tipo: ${filters.type === 'income' ? 'Entrada' : 'Saida'}`);
+    if (filters.type) {
+      chips.push(
+        `Tipo: ${
+          filters.type === 'income' ? 'Receita' : filters.type === 'expense' ? 'Despesa' : 'Transferência'
+        }`
+      );
     }
-    if (filters.accountId) {
-      const accountName = accounts.find((item) => item.id === filters.accountId)?.name ?? 'Conta';
-      chips.push(`Conta: ${accountName}`);
-    }
-    if (filters.q) {
-      chips.push(`Busca: ${filters.q}`);
+    if (filters.search) {
+      chips.push(`Busca: ${filters.search}`);
     }
     if (filters.dateFrom) {
       chips.push(`De: ${formatPtBrFromYmd(filters.dateFrom)}`);
     }
     if (filters.dateTo) {
-      chips.push(`Ate: ${formatPtBrFromYmd(filters.dateTo)}`);
+      chips.push(`Até: ${formatPtBrFromYmd(filters.dateTo)}`);
     }
     return chips;
   }
 
-  private applyFilters(items: Transaction[], filters: TransactionFilters, categories: Category[]): Transaction[] {
+  private applyFilters(items: Transaction[], filters: TransactionFilters): Transaction[] {
     if (!items.length) return items;
-    const q = normalizeText(filters.q);
-    const categoryNameById = new Map(
-      categories.map((category) => [category.id ?? '', normalizeText(category.name)])
-    );
+    const q = normalizeText(filters.search);
     return items.filter((tx) => {
       if (filters.dateFrom || filters.dateTo) {
         const dateKey = normalizeTxDateToKey(tx);
@@ -538,24 +469,13 @@ export class TransactionsComponent implements OnDestroy {
       if (filters.categoryId && tx.categoryId !== filters.categoryId) {
         return false;
       }
-      if (filters.type && filters.type !== 'all' && tx.type !== filters.type) {
+      if (filters.type && tx.type !== filters.type) {
         return false;
       }
-      if (filters.accountId) {
-        const matchesAccount =
-          tx.accountId === filters.accountId ||
-          tx.accountOriginId === filters.accountId ||
-          tx.accountDestinationId === filters.accountId;
-        if (!matchesAccount) {
-          return false;
-        }
-      }
       if (q) {
-        const categoryName = categoryNameById.get(tx.categoryId ?? '') ?? '';
+        const nameText = normalizeText((tx as any).name);
         const matchesQuery =
-          normalizeText(tx.description).includes(q) ||
-          normalizeText(tx.notes).includes(q) ||
-          categoryName.includes(q);
+          (nameText && nameText.includes(q)) || normalizeText(tx.description).includes(q);
         if (!matchesQuery) {
           return false;
         }
